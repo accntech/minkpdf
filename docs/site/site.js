@@ -2,6 +2,25 @@ import { searchDocuments, searchSnippet } from './search.js';
 import { canNavigateDocument } from './navigation.js';
 import { numericParts } from './numbers.js';
 
+const docsRoot = new URL('../', import.meta.url);
+function resolvePageLinks(page, url) {
+	for (const element of page.querySelectorAll('[href], [src]')) {
+		for (const name of ['href', 'src']) {
+			const value = element.getAttribute(name);
+			if (value && !value.startsWith('#'))
+				element.setAttribute(name, new URL(value, url).href);
+		}
+	}
+}
+resolvePageLinks(document, location.href);
+// Keep bookmarks for explicit index files on the directory URL.
+if (location.pathname.endsWith('/index.html'))
+	history.replaceState(
+		history.state,
+		'',
+		location.pathname.slice(0, -10) + location.search + location.hash
+	);
+
 // The sidebar, header, and search stay mounted while real static pages supply the content.
 document.body.classList.add('js-enabled');
 const themeButton = document.querySelector('#theme-toggle');
@@ -53,11 +72,8 @@ let menuClosing;
 let finishMenuClose;
 let menuCloseTimer;
 let restoreMenuFocus = true;
-const files = [...navigation.querySelectorAll('nav a')].map((link) =>
-	new URL(link.href).pathname.split('/').pop()
-);
-const canonicalPath = (url) =>
-	url.pathname.endsWith('/') ? url.pathname + 'index.html' : url.pathname;
+const files = [...navigation.querySelectorAll('nav a')].map((link) => link.href);
+const canonicalPath = (url) => url.pathname.replace(/index\.html$/, '');
 let loadedUrl = new URL(location.href);
 let navigationSequence = 0;
 let restoringScroll = false;
@@ -216,6 +232,7 @@ async function navigateDocument(url, { push = true, savedScroll } = {}) {
 				pageCache.set(key, source);
 			}
 			incoming = new DOMParser().parseFromString(source, 'text/html');
+			resolvePageLinks(incoming, url.href);
 			if (!incoming.querySelector('.content-layout') || !incoming.querySelector('.breadcrumb'))
 				throw new Error('Invalid documentation page');
 		}
@@ -248,7 +265,7 @@ async function navigateDocument(url, { push = true, savedScroll } = {}) {
 			])
 				document.querySelector(selector).content = incoming.querySelector(selector).content;
 			for (const link of navigation.querySelectorAll('nav a')) {
-				if (new URL(link.href).pathname === canonicalPath(url))
+				if (canonicalPath(new URL(link.href)) === canonicalPath(url))
 					link.setAttribute('aria-current', 'page');
 				else link.removeAttribute('aria-current');
 			}
@@ -352,7 +369,7 @@ async function renderSearch() {
 			: index.filter((row) => row.overview);
 		const items = matches.map((row) => {
 			const item = resultTemplate.content.firstElementChild.cloneNode(true);
-			item.querySelector('a').href = new URL(row.url, location.href).href;
+			item.querySelector('a').href = new URL(row.url, docsRoot).href;
 			setNumberText(item.querySelector('small'), row.overview ? 'Documentation' : row.page);
 			setNumberText(item.querySelector('strong'), row.section);
 			setNumberText(item.querySelector('p'), searchSnippet(row.text, query));

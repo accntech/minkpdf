@@ -7,6 +7,12 @@ import { runInNewContext } from 'node:vm';
 const output = mkdtempSync(join(tmpdir(), 'minkpdf-docs-'));
 const root = new URL('../', import.meta.url).pathname;
 const pages = ['index', 'getting-started', 'installation', 'api', 'comparison', 'benchmarks'];
+const pagePath = (name: string) => name === 'index' ? './' : `${name}/`;
+const pageFile = (name: string) => join(output, name === 'index' ? 'index.html' : `${name}/index.html`);
+function localFile(url: URL) {
+	const path = url.pathname.replace(/^\/minkpdf\//, '');
+	return Bun.file(join(output, path.endsWith('/') || !path ? `${path}index.html` : path));
+}
 let building: Promise<{ status: number; error: string }> | undefined;
 function build() {
 	return (building ??= (async () => {
@@ -25,7 +31,7 @@ test('documentation build produces all six static pages', async () => {
 	expect(result.error).toBe('');
 	expect(result.status).toBe(0);
 	for (const name of pages) {
-		const html = await Bun.file(join(output, `${name}.html`)).text();
+		const html = await Bun.file(pageFile(name)).text();
 		expect(html).toContain('<main id="main">');
 		expect(html).toContain('<h1');
 		expect(html).toContain('aria-current="page"');
@@ -36,15 +42,17 @@ test('documentation build produces all six static pages', async () => {
 test('every local link and fragment resolves under a GitHub project subpath', async () => {
 	await build();
 	for (const name of pages) {
-		const html = await Bun.file(join(output, `${name}.html`)).text();
+		const html = await Bun.file(pageFile(name)).text();
 		const ids = [...html.matchAll(/\bid="([^"]+)"/g)].map((match) => match[1]);
 		expect(new Set(ids).size).toBe(ids.length);
 		for (const match of html.matchAll(/\b(?:href|src)="([^"]+)"/g)) {
 			const value = match[1];
 			if (/^(https?:|mailto:|data:)/.test(value)) continue;
 			expect(value.startsWith('/')).toBe(false);
-			const [file, fragment] = value.split('#');
-			const target = Bun.file(join(output, file || `${name}.html`));
+			expect(value).not.toMatch(/\.html(?:#|$)/);
+			const url = new URL(value, `https://example.com/minkpdf/${pagePath(name)}`);
+			const fragment = url.hash.slice(1);
+			const target = localFile(url);
 			expect(await target.exists()).toBe(true);
 			if (fragment) expect(await target.text()).toContain(`id="${fragment}"`);
 		}
@@ -54,7 +62,7 @@ test('every local link and fragment resolves under a GitHub project subpath', as
 test('render charts preserve recorded values for every metric and both engines', async () => {
 	await build();
 	const report = await Bun.file(join(root, 'docs/site/data/2026-10-08-render-benchmarks.json')).json();
-	const html = await Bun.file(join(output, 'benchmarks.html')).text();
+	const html = await Bun.file(pageFile('benchmarks')).text();
 	for (const metric of ['medianMs', 'p95Ms', 'firstMs', 'pdfBytes']) {
 		for (const row of report.results) {
 			expect(html).toContain(
@@ -73,7 +81,7 @@ test('bundle charts describe the current feature implementation and measured run
 	const report = await Bun.file(
 		join(root, 'docs/site/data/2026-10-08-bundle-benchmarks.json')
 	).json();
-	const html = await Bun.file(join(output, 'benchmarks.html')).text();
+	const html = await Bun.file(pageFile('benchmarks')).text();
 	for (const [name, size] of Object.entries(report.sizes) as [
 		string,
 		{ raw: number; gzip: number }
@@ -87,7 +95,7 @@ test('bundle charts describe the current feature implementation and measured run
 
 test('API and migration docs cover supported features and their limits', async () => {
 	await build();
-	const api = await Bun.file(join(output, 'api.html')).text();
+	const api = await Bun.file(pageFile('api')).text();
 	for (const value of [
 		'print(target?)',
 		'absolutePosition',
@@ -99,7 +107,7 @@ test('API and migration docs cover supported features and their limits', async (
 		expect(api).toContain(value);
 	expect(api).toContain('repeated-header boundary');
 	expect(api).not.toContain('Row spans are unsupported');
-	const comparison = await Bun.file(join(output, 'comparison.html')).text();
+	const comparison = await Bun.file(pageFile('comparison')).text();
 	expect(comparison).toContain('print(target?)');
 	expect(comparison).not.toContain('row spans are excluded');
 });
@@ -107,7 +115,7 @@ test('API and migration docs cover supported features and their limits', async (
 test('documentation initializes the enhanced layout before paint and ships local search assets', async () => {
 	await build();
 	for (const name of pages) {
-		const html = await Bun.file(join(output, `${name}.html`)).text();
+		const html = await Bun.file(pageFile(name)).text();
 		const bootstrap = html.indexOf("document.documentElement.classList.add('js-enabled')");
 		expect(bootstrap).toBeGreaterThan(0);
 		expect(bootstrap).toBeLessThan(html.indexOf('rel="stylesheet"'));
@@ -131,7 +139,7 @@ test('LLM documentation includes every page, intact examples, API tables, and re
 	expect(index).toContain('[Full documentation](llms-full.txt)');
 	expect(index.length).toBeLessThan(text.length / 4);
 	expect(index).not.toContain('```');
-	for (const page of content) expect(index).toContain(`](${page.slug}.html)`);
+	for (const page of content) expect(index).toContain(`](${pagePath(page.slug)})`);
 	for (const page of content) expect(text).toContain(`## ${page.title}`);
 	expect(text).toContain(receiptExample);
 	expect(text).toContain('Promise<Uint8Array>');
@@ -142,8 +150,9 @@ test('LLM documentation includes every page, intact examples, API tables, and re
 	expect(text).toContain("'A4' \\| 'LETTER' \\| 'LEGAL'");
 	for (const match of (index + '\n' + text).matchAll(/\]\(([^)]+)\)/g)) {
 		if (/^https?:/.test(match[1])) continue;
-		const [path, fragment] = match[1].split('#');
-		const target = Bun.file(join(output, path));
+		const url = new URL(match[1], 'https://example.com/minkpdf/llms.txt');
+		const fragment = url.hash.slice(1);
+		const target = localFile(url);
 		expect(await target.exists()).toBe(true);
 		if (fragment) expect(await target.text()).toContain(`id="${fragment}"`);
 	}
@@ -152,7 +161,7 @@ test('LLM documentation includes every page, intact examples, API tables, and re
 test('theme is restored before paint and falls back to the system when storage is unavailable', async () => {
 	await build();
 	for (const name of pages) {
-		const html = await Bun.file(join(output, `${name}.html`)).text();
+		const html = await Bun.file(pageFile(name)).text();
 		const bootstrap = html.match(/<script>([\s\S]*?)<\/script>/)![1];
 		for (const [saved, systemDark, expected] of [
 			['dark', false, 'dark'],
@@ -185,10 +194,10 @@ test('section search finds API methods, multiple terms and Unicode without index
 	const index = await file.json();
 	const { searchDocuments } = await import('../docs/site/search.js');
 	const results = searchDocuments(index, 'getBuffer()');
-	expect(results[0].url).toBe('api.html#output');
-	expect(results.some((row: { url: string }) => row.url === 'api.html#output')).toBe(true);
-	expect(searchDocuments(index, 'PNG transparency')[0].url).toBe('api.html#images');
-	expect(searchDocuments(index, 'getting started')[0].url).toBe('getting-started.html');
+	expect(results[0].url).toBe('api/#output');
+	expect(results.some((row: { url: string }) => row.url === 'api/#output')).toBe(true);
+	expect(searchDocuments(index, 'PNG transparency')[0].url).toBe('api/#images');
+	expect(searchDocuments(index, 'getting started')[0].url).toBe('getting-started/');
 	expect(
 		searchDocuments(index, 'jose').some((row: { url: string }) => row.url.endsWith('#unicode'))
 	).toBe(true);
@@ -196,25 +205,58 @@ test('section search finds API methods, multiple terms and Unicode without index
 	expect(searchDocuments(index, '   ')).toEqual([]);
 	for (const row of index) {
 		expect(row.text).not.toMatch(/<\/?(?:h2|svg|span|div)\b|&(?:lt|gt|amp|quot);/);
-		const [page, fragment] = row.url.split('#');
-		const html = await Bun.file(join(output, page)).text();
+		const url = new URL(row.url, 'https://example.com/minkpdf/');
+		const fragment = url.hash.slice(1);
+		const html = await localFile(url).text();
 		if (fragment) expect(html).toContain(`id="${fragment}"`);
 	}
 });
 
-test('enhanced navigation intercepts only documentation in the same project directory', async () => {
-	const file = Bun.file(join(root, 'docs/site/navigation.js'));
-	expect(await file.exists()).toBe(true);
+test('enhanced navigation intercepts clean docs URLs from the home page and nested pages', async () => {
 	const { canNavigateDocument } = await import('../docs/site/navigation.js');
-	const current = 'https://accntech.github.io/minkpdf/api.html';
-	const files = pages.map((name) => `${name}.html`);
-	expect(canNavigateDocument('getting-started.html#unicode', current, files)).toBe(true);
-	expect(canNavigateDocument('benchmarks.html', current, files)).toBe(true);
-	expect(canNavigateDocument('https://example.com/api.html', current, files)).toBe(false);
-	expect(canNavigateDocument('/api.html', current, files)).toBe(false);
-	expect(canNavigateDocument('charts/medianMs.svg', current, files)).toBe(false);
-	expect(canNavigateDocument('data/2026-10-08-render-benchmarks.json', current, files)).toBe(false);
-	expect(canNavigateDocument('javascript:alert(1)', current, files)).toBe(false);
+	const routes = pages.map((name) => new URL(pagePath(name), 'https://accntech.github.io/minkpdf/').href);
+	for (const current of ['https://accntech.github.io/minkpdf/', 'https://accntech.github.io/minkpdf/api/']) {
+		for (const route of routes) expect(canNavigateDocument(`${route}#main`, current, routes)).toBe(true);
+		for (const href of ['https://example.com/api/', '/api/', '../charts/medianMs.svg', '../data/2026-10-08-render-benchmarks.json', 'javascript:alert(1)'])
+			expect(canNavigateDocument(href, current, routes)).toBe(false);
+	}
+});
+
+test('old HTML URLs redirect to clean pages while preserving query strings and fragments', async () => {
+	await build();
+	for (const name of pages.filter((name) => name !== 'index')) {
+		const html = await Bun.file(join(output, `${name}.html`)).text();
+		expect(html).toContain(`href="${name}/"`);
+		const script = html.match(/<script>([\s\S]*?)<\/script>/)![1];
+		let destination = '';
+		runInNewContext(script, {
+			location: { search: '?source=old', hash: '#main', replace: (url: string) => { destination = url; } }
+		});
+		expect(destination).toBe(`${name}/?source=old#main`);
+	}
+});
+
+test('local docs server serves clean routes and redirects missing trailing slashes', async () => {
+	await build();
+	const server = Bun.spawn([Bun.which('bun')!, 'scripts/serve-docs.ts', `--outdir=${output}`], {
+		cwd: root, env: { ...process.env, PORT: '0' }, stdout: 'pipe', stderr: 'pipe'
+	});
+	try {
+		const { value } = await server.stdout.getReader().read();
+		const base = new TextDecoder().decode(value).match(/http:\/\/[^\s]+/)![0];
+		const response = await fetch(new URL('api/', base));
+		expect(response.status).toBe(200);
+		expect(await response.text()).toContain('print(target?)');
+		const redirect = await fetch(new URL('api?source=test', base), { redirect: 'manual' });
+		expect(redirect.status).toBe(308);
+		expect(new URL(redirect.headers.get('location')!, base).pathname).toBe('/api/');
+		expect(new URL(redirect.headers.get('location')!, base).search).toBe('?source=test');
+		expect((await fetch(new URL('assets/site.css', base))).status).toBe(200);
+		expect((await fetch(new URL('missing/', base))).status).toBe(404);
+	} finally {
+		server.kill();
+		await server.exited;
+	}
 });
 
 test('numeric text is monospace without changing identifiers, links, metadata or code', async () => {
@@ -253,9 +295,9 @@ test('numeric text is monospace without changing identifiers, links, metadata or
 	])
 		expect(result).toContain(untouched);
 	await build();
-	const benchmark = await Bun.file(join(output, 'benchmarks.html')).text();
+	const benchmark = await Bun.file(pageFile('benchmarks')).text();
 	expect(benchmark).toMatch(/<td><span class="number-value">[\d,.]+<\/span><\/td>/);
-	const api = await Bun.file(join(output, 'api.html')).text();
+	const api = await Bun.file(pageFile('api')).text();
 	expect(api).toContain('<span class="number-value">72</span> points');
 	expect(await Bun.file(join(output, 'assets/numbers.js')).exists()).toBe(true);
 });

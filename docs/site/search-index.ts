@@ -1,4 +1,5 @@
 import type { Page } from './content';
+import { pagePath } from './routes';
 
 function plainText(html: string): string {
 	return html
@@ -24,7 +25,7 @@ export function buildSearchIndex(pages: Page[]) {
 			{
 				page: page.title,
 				section: page.title,
-				url: `${page.slug}.html`,
+				url: pagePath(page.slug),
 				text: page.description,
 				keywords: page.slug.replaceAll('-', ' '),
 				overview: true
@@ -32,7 +33,7 @@ export function buildSearchIndex(pages: Page[]) {
 			...sections.map((match, index) => ({
 				page: page.title,
 				section: page.sections.find(([id]) => id === match[1])?.[1] ?? page.title,
-				url: `${page.slug}.html#${match[1]}`,
+				url: `${pagePath(page.slug)}#${match[1]}`,
 				text: plainText(
 					page.body.slice(match.index, sections[index + 1]?.index ?? page.body.length)
 				),

@@ -1,4 +1,5 @@
 import { escape } from './html';
+import { pagePath } from './routes';
 import { pages, type Page } from './content';
 import { icon, navigationIcons } from './icons';
 
@@ -36,7 +37,7 @@ export function template(page: Page, version: string): string {
 <a class="skip-link" href="#main">Skip to content</a>
 <aside class="sidebar" id="navigation">
   <button id="menu-close" type="button" aria-label="Close navigation">${icon('close-circle-linear')}</button>
-  <a class="brand" href="index.html"><img src="assets/icon.png" width="38" height="38" alt=""><span>Mink<span class="brand-pdf">PDF</span><small>Documentation</small></span></a>
+  <a class="brand" href="./"><img src="assets/icon.png" width="38" height="38" alt=""><span>Mink<span class="brand-pdf">PDF</span><small>Documentation</small></span></a>
   <div class="version"><span class="version-dot" aria-hidden="true"></span><span>v${escape(version)}</span></div>
   <button class="search-trigger sidebar-search" type="button" aria-haspopup="dialog" aria-controls="search-dialog">${icon('magnifier-linear')}<span>Search docs</span><kbd class="search-shortcut">⌘ K</kbd></button>
   <nav aria-label="Documentation">${['Introduction', 'Guides', 'Reference']
@@ -46,7 +47,7 @@ export function template(page: Page, version: string): string {
 					.filter((item) => item.group === group)
 					.map(
 						(item) =>
-							`<a href="${item.slug}.html" ${item.slug === page.slug ? 'aria-current="page"' : ''}>${icon(navigationIcons[item.slug])}<span>${item.slug === 'index' ? 'Why MinkPDF?' : item.slug === 'getting-started' ? 'Getting started' : item.slug === 'benchmarks' ? 'Benchmarks' : escape(item.title)}</span>${item.slug === 'benchmarks' ? '<span class="nav-live" aria-hidden="true"></span>' : ''}</a>`
+							`<a href="${pagePath(item.slug)}" ${item.slug === page.slug ? 'aria-current="page"' : ''}>${icon(navigationIcons[item.slug])}<span>${item.slug === 'index' ? 'Why MinkPDF?' : item.slug === 'getting-started' ? 'Getting started' : item.slug === 'benchmarks' ? 'Benchmarks' : escape(item.title)}</span>${item.slug === 'benchmarks' ? '<span class="nav-live" aria-hidden="true"></span>' : ''}</a>`
 					)
 					.join('')}</div>`
 		)
@@ -62,12 +63,12 @@ export function template(page: Page, version: string): string {
 </aside>
 <dialog id="navigation-sheet" aria-label="Documentation navigation" data-state="closed"><div class="sheet-overlay" aria-hidden="true"></div></dialog>
 <div class="site-shell">
-  <header class="topbar"><div class="breadcrumb"><a href="index.html">Docs</a><span aria-hidden="true">/</span><span>${page.slug === 'index' ? 'Introduction' : escape(page.title)}</span></div><div class="topbar-actions"><button class="search-trigger mobile-search" type="button" aria-label="Search documentation" aria-haspopup="dialog" aria-controls="search-dialog">${icon('magnifier-linear')}</button><a href="${repository}" aria-label="View MinkPDF on GitHub" title="View MinkPDF on GitHub">${github}</a><button id="theme-toggle" type="button" aria-label="Switch to dark theme" aria-pressed="false" title="Switch to dark theme">${icon('moon-linear')}${icon('sun-2-linear')}</button><button id="menu-toggle" type="button" aria-label="Toggle navigation" aria-haspopup="dialog" aria-controls="navigation-sheet" aria-expanded="false">${icon('hamburger-menu-linear')}<span>Menu</span></button></div></header>
+  <header class="topbar"><div class="breadcrumb"><a href="./">Docs</a><span aria-hidden="true">/</span><span>${page.slug === 'index' ? 'Introduction' : escape(page.title)}</span></div><div class="topbar-actions"><button class="search-trigger mobile-search" type="button" aria-label="Search documentation" aria-haspopup="dialog" aria-controls="search-dialog">${icon('magnifier-linear')}</button><a href="${repository}" aria-label="View MinkPDF on GitHub" title="View MinkPDF on GitHub">${github}</a><button id="theme-toggle" type="button" aria-label="Switch to dark theme" aria-pressed="false" title="Switch to dark theme">${icon('moon-linear')}${icon('sun-2-linear')}</button><button id="menu-toggle" type="button" aria-label="Toggle navigation" aria-haspopup="dialog" aria-controls="navigation-sheet" aria-expanded="false">${icon('hamburger-menu-linear')}<span>Menu</span></button></div></header>
   <div class="content-layout">
     <main id="main">
       <div class="page-heading"><div class="eyebrow"><span class="eyebrow-line" aria-hidden="true"></span>${page.slug === 'index' ? 'THE MINKPDF HANDBOOK' : escape(page.group).toUpperCase()}</div><h1>${escape(page.title)}</h1><p class="lead">${escape(page.description)}</p></div>
       <article>${page.body}</article>
-      <nav class="page-pagination" aria-label="Previous and next pages">${previous ? `<a href="${previous.slug}.html"><span>← Previous</span><strong>${previous.title}</strong></a>` : '<span></span>'}${next ? `<a href="${next.slug}.html"><span>Next →</span><strong>${next.slug === 'getting-started' ? 'Getting started' : next.title}</strong></a>` : '<span></span>'}</nav>
+      <nav class="page-pagination" aria-label="Previous and next pages">${previous ? `<a href="${pagePath(previous.slug)}"><span>← Previous</span><strong>${previous.title}</strong></a>` : '<span></span>'}${next ? `<a href="${pagePath(next.slug)}"><span>Next →</span><strong>${next.slug === 'getting-started' ? 'Getting started' : next.title}</strong></a>` : '<span></span>'}</nav>
       <footer class="page-footer"><span>MinkPDF · Built for the documents you need.</span><span><a href="${repository}/blob/main/LICENSE">MIT license ↗</a> · <a href="https://github.com/480-Design/Solar-Icon-Set">Solar icons by 480 Design</a></span></footer>
     </main>
     <aside class="toc" aria-label="On this page"><span class="toc-label">ON THIS PAGE</span><nav>${page.sections.map(([id, label]) => `<a href="#${id}">${label}</a>`).join('')}</nav><a class="source-link" href="${repository}/blob/main/docs/site/${page.slug === 'benchmarks' ? 'charts' : 'content'}.ts">View page source ↗</a></aside>
@@ -83,5 +84,8 @@ export function template(page: Page, version: string): string {
 </dialog>
 <template id="search-result-template"><li><a class="search-result"><div><small></small><strong></strong><p></p></div>${icon('arrow-right-linear')}</a></li></template>
 </body>
-</html>`;
+</html>`.replace(/\b(href|src)="([^"#][^"]*)"/g, (attribute, name, value) => {
+		if (/^(?:[a-z][a-z\d+.-]*:|\/)/i.test(value)) return attribute;
+		return `${name}="${page.slug === 'index' ? '' : '../'}${value}"`;
+	});
 }

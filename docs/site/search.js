@@ -19,7 +19,7 @@ export function searchDocuments(index, query, limit = 10) {
 						(title.includes(term) ? 12 : 0) +
 						(page.includes(term) ? 3 : 0) +
 						(body.includes(term) ? 1 : 0) +
-						(keywords.includes(term) ? (row.url.startsWith('api.html#') ? 15 : 10) : 0),
+						(keywords.includes(term) ? (row.url.startsWith('api/#') ? 15 : 10) : 0),
 					0
 				) + (title.includes(phrase) ? 20 : 0);
 			return { ...row, score, order };

@@ -113,20 +113,20 @@ export const pages: Page[] = [
 			['find-your-way', 'Find your way']
 		],
 		body: `<div class="intro-art" aria-label="Document definition to PDF illustration"><div class="art-definition"><span class="art-label">Your definition</span><code>{ content: 'Hello' }</code><span class="art-arrow" aria-hidden="true">↗</span></div><div class="art-page"><div class="paper-top"><span>M</span><small>GENERATED WITH MINKPDF</small></div><strong>Hello.</strong><p>A little code.<br>A real document.</p><div class="paper-rule"></div><div class="paper-bottom"><span>Helvetica · A4</span><span>1 / 1</span></div></div><span class="art-caption">Definition → layout → PDF bytes</span></div>
-<div class="intro-actions"><a class="button primary" href="getting-started.html">Create your first PDF <span aria-hidden="true">→</span></a><a class="text-link" href="api.html">Explore the API ↗</a></div>
+<div class="intro-actions"><a class="button primary" href="getting-started/">Create your first PDF <span aria-hidden="true">→</span></a><a class="text-link" href="api/">Explore the API ↗</a></div>
 ${heading('why-minkpdf', 'Why MinkPDF exists')}
 <p>Receipts, reports, and vouchers need reliable text, tables, and pagination. Shipping a broad PDF stack for those documents can add a substantial amount of code to an application. MinkPDF focuses on this smaller, practical document workflow.</p>
 <p>The project’s development centers on a standalone engine with <strong>zero runtime package dependencies</strong>, a compact browser bundle, and a familiar document-definition model. It implements its own layout, font handling, and PDF serialization while supporting a useful subset of pdfmake’s API.</p>
 <p>Optional feature modules make that focus explicit: a text-only app can import the core, while an invoice app can add tables and embedded fonts. The full root import remains the convenient starting point.</p>
 ${heading('design-principles', 'Small by design')}
 <div class="principles"><div><span class="principle-icon">${icon('code-square-linear')}</span><h3>Describe your document</h3><p>Describe content and styles in TypeScript. Let the engine lay out and paginate the document.</p></div><div><span class="principle-icon">${icon('layers-minimalistic-linear')}</span><h3>Choose your capabilities</h3><p>Compose tables, images, and TrueType fonts around a shared core. Bundle what your document needs.</p></div><div><span class="principle-icon">${icon('infinite-linear')}</span><h3>One model across runtimes</h3><p>Get PDF bytes in browsers, Node.js, and Bun through the same asynchronous output methods.</p></div></div>
-${note('A focused API', 'MinkPDF supports a subset of pdfmake, with different layout and pagination behavior. Check the <a href="comparison.html#compatibility">compatibility table</a> before migrating an existing document.')}
+${note('A focused API', 'MinkPDF supports a subset of pdfmake, with different layout and pagination behavior. Check the <a href="comparison/#compatibility">compatibility table</a> before migrating an existing document.')}
 ${heading('under-the-hood', 'From content to PDF bytes')}
 <div class="pipeline"><div><b>Define</b><span>Content + styles</span></div><span aria-hidden="true">→</span><div><b>Lay out</b><span>Measure + paginate</span></div><span aria-hidden="true">→</span><div><b>Serialize</b><span>Fonts + streams</span></div></div>
 <p>The engine measures text, arranges content, and paginates it. It embeds and subsets registered TrueType fonts, embeds PNG/JPEG images, compresses streams with native Web APIs, and writes the PDF structure itself.</p>
 <p>Rendering is lazy. Calling <code>createPdf()</code> prepares a document; the byte/Blob methods share one cached render. Browser printing separately caches a printable render.</p>
 ${heading('find-your-way', 'Find your way')}
-<div class="link-grid"><a href="getting-started.html"><span>Start building</span><strong>Getting started <i aria-hidden="true">→</i></strong><p>Generate and save a receipt in a few lines.</p></a><a href="installation.html"><span>Set up your environment</span><strong>Installation <i aria-hidden="true">→</i></strong><p>ES modules, runtime requirements, and optional imports.</p></a><a href="comparison.html"><span>Coming from pdfmake?</span><strong>API comparison <i aria-hidden="true">→</i></strong><p>Keep familiar definitions and adapt output handling.</p></a><a href="benchmarks.html"><span>Explore the measurements</span><strong>Benchmarks <i aria-hidden="true">→</i></strong><p>Render timings, bundle sizes, and reproducible results.</p></a></div>`
+<div class="link-grid"><a href="getting-started/"><span>Start building</span><strong>Getting started <i aria-hidden="true">→</i></strong><p>Generate and save a receipt in a few lines.</p></a><a href="installation/"><span>Set up your environment</span><strong>Installation <i aria-hidden="true">→</i></strong><p>ES modules, runtime requirements, and optional imports.</p></a><a href="comparison/"><span>Coming from pdfmake?</span><strong>API comparison <i aria-hidden="true">→</i></strong><p>Keep familiar definitions and adapt output handling.</p></a><a href="benchmarks/"><span>Explore the measurements</span><strong>Benchmarks <i aria-hidden="true">→</i></strong><p>Render timings, bundle sizes, and reproducible results.</p></a></div>`
 	},
 	{
 		slug: 'getting-started',
@@ -151,7 +151,7 @@ ${heading('browser-download', 'Download in a browser')}
 <p>Add a download button, then include the JavaScript in your bundled browser application. The object URL is released after the download is started.</p>
 ${code('<button id="download-pdf" type="button">Download receipt</button>', 'HTML')}
 ${code(browserExample, 'JavaScript · browser')}
-<p>Without a bundler, serve the built <code>dist/</code> module tree over HTTP(S) and import its <code>index.js</code>. Preserve relative module paths. See <a href="installation.html#without-bundler">installation without a bundler</a>.</p>
+<p>Without a bundler, serve the built <code>dist/</code> module tree over HTTP(S) and import its <code>index.js</code>. Preserve relative module paths. See <a href="installation/#without-bundler">installation without a bundler</a>.</p>
 ${heading('unicode', 'Add Unicode with an embedded font')}
 <p>Helvetica supports ASCII. For names like José or currency symbols like ₱, register a TrueType font that contains the requested characters. Put <code>Inter-Regular.ttf</code> and <code>Inter-Bold.ttf</code> in a local <code>fonts/</code> directory.</p>
 ${code(fontExample, 'unicode-receipt.mjs')}
@@ -159,7 +159,7 @@ ${code(fontExample, 'unicode-receipt.mjs')}
 <p>In a browser, fetch the font yourself and pass <code>new Uint8Array(await response.arrayBuffer())</code> to <code>addVirtualFileSystem()</code>. Check <code>response.ok</code> before reading the response.</p>
 ${note('Register every variant you use', 'Register <code>normal</code>, <code>bold</code>, <code>italics</code>, and <code>bolditalics</code> as needed. A missing variant throws an error; it does not fall back to the normal font.')}
 ${heading('next-steps', 'Build a more useful document')}
-<p>Add <a href="api.html#tables">tables with repeated headers</a>, <a href="api.html#pages">page numbers</a>, or <a href="api.html#styles">named styles</a>. For smaller bundles, choose <a href="installation.html#optional-features">optional feature imports</a>.</p>`
+<p>Add <a href="api/#tables">tables with repeated headers</a>, <a href="api/#pages">page numbers</a>, or <a href="api/#styles">named styles</a>. For smaller bundles, choose <a href="installation/#optional-features">optional feature imports</a>.</p>`
 	},
 	{
 		slug: 'installation',
@@ -226,7 +226,7 @@ ${table(
 		['<code>minkpdf/interfaces</code>', 'Document definition types; use <code>import type</code>']
 	]
 )}
-<p>Application bundlers remove unreferenced modules. Feature selection happens when creating the engine; it is not inferred from runtime document content. See the <a href="benchmarks.html#optional-features">measured consumer bundle sizes</a>.</p>
+<p>Application bundlers remove unreferenced modules. Feature selection happens when creating the engine; it is not inferred from runtime document content. See the <a href="benchmarks/#optional-features">measured consumer bundle sizes</a>.</p>
 ${heading('without-bundler', 'Serve ES modules without a bundler')}
 <p>Build the repository or obtain the package’s built <code>dist/</code> directory. Copy the entire module tree to your static server, for example under <code>/vendor/minkpdf/</code>. Keep the nested folders and relative imports intact.</p>
 ${code(
@@ -470,7 +470,7 @@ pdf.addFonts({ Inter: { normal: 'Inter-Regular.ttf' } });
 // Replacement, rather than merging:
 pdf.fonts = { Inter: { normal: 'Inter-Regular.ttf' } };`)}
 <p>Font dictionaries map family names to <code>{ normal, bold?, italics?, bolditalics? }</code>, with filenames pointing to registered virtual files. Embedded fonts must include the requested characters. Resources are shared among documents created by the same engine. MinkPDF does not fetch files automatically.</p>
-<p>Font registration requires <code>trueTypeFonts()</code>; custom table-layout registration requires <code>tables()</code>. Both are already enabled by the root import. See the <a href="getting-started.html#unicode">complete Unicode example</a>.</p>
+<p>Font registration requires <code>trueTypeFonts()</code>; custom table-layout registration requires <code>tables()</code>. Both are already enabled by the root import. See the <a href="getting-started/#unicode">complete Unicode example</a>.</p>
 ${heading('images', 'Images')}
 <p>The image node accepts a PNG or JPEG base64 data URL. Use <code>width</code>, <code>height</code>, or <code>fit: [width, height]</code> to size it. Add <code>images()</code> to a core engine, and <code>tables()</code> if placing images in table cells.</p>
 ${code(`import pdf from 'minkpdf';
@@ -508,7 +508,7 @@ ${code(`try {
   console.error('PDF generation failed:', error);
 }`)}
 <p>Missing capabilities, unregistered fonts or variants, invalid colors, and margins that leave no content area produce errors. Duplicate feature descriptors and resource registration on disabled capabilities throw synchronously; render failures reject output promises.</p>
-<p>SVG, QR codes, lists, attachments, encryption, PDF/A, and complex-script shaping are outside the supported API. CSS color functions such as <code>rgb()</code>, eight-digit hex colors, <code>transparent</code>, and <code>currentColor</code> are unsupported; use <code>fillOpacity</code> or watermark opacity for transparency. See the <a href="comparison.html#compatibility">pdfmake comparison</a> for migration limits and <a href="https://github.com/accntech/minkpdf/blob/main/src/interfaces.ts">public interface definitions</a> for the complete types.</p>`
+<p>SVG, QR codes, lists, attachments, encryption, PDF/A, and complex-script shaping are outside the supported API. CSS color functions such as <code>rgb()</code>, eight-digit hex colors, <code>transparent</code>, and <code>currentColor</code> are unsupported; use <code>fillOpacity</code> or watermark opacity for transparency. See the <a href="comparison/#compatibility">pdfmake comparison</a> for migration limits and <a href="https://github.com/accntech/minkpdf/blob/main/src/interfaces.ts">public interface definitions</a> for the complete types.</p>`
 	},
 	{
 		slug: 'comparison',
@@ -600,7 +600,7 @@ const bytes = await pdf
 // Embed a TrueType font for Unicode.`,
 			'JavaScript'
 		)}</div></div>
-<p>For downloads, replace <code>pdfMake.createPdf(definition).download('invoice.pdf')</code> with <code>getBlob()</code> and an object URL. The <a href="getting-started.html#browser-download">complete browser example</a> includes cleanup. Browser <code>print(target?)</code> supports the same preopened-window pattern as pdfmake 0.3. MinkPDF has no <code>download()</code>, <code>open()</code>, <code>write()</code>, or <code>getStream()</code> helpers.</p>
+<p>For downloads, replace <code>pdfMake.createPdf(definition).download('invoice.pdf')</code> with <code>getBlob()</code> and an object URL. The <a href="getting-started/#browser-download">complete browser example</a> includes cleanup. Browser <code>print(target?)</code> supports the same preopened-window pattern as pdfmake 0.3. MinkPDF has no <code>download()</code>, <code>open()</code>, <code>write()</code>, or <code>getStream()</code> helpers.</p>
 ${heading('fonts-migration', 'Register files explicitly')}
 <p>For a matching font, supply the same TrueType bytes and variants to both engines. In MinkPDF, map virtual filenames to bytes or base64, then register the font dictionary and set <code>defaultStyle.font</code>.</p>
 ${code(`pdf.addVirtualFileSystem({ 'Inter-Regular.ttf': fontBytes });
@@ -648,7 +648,7 @@ ${table(
 	]
 )}
 ${heading('migration-checklist', 'Before switching an application')}
-<ol><li>Inventory the document features and output helpers your app uses.</li><li>Check the supported types, colors, image formats, and font variants.</li><li>Start with the full root import, then choose optional features if bundle size matters.</li><li>Adapt downloads, file writes, and any callback-based output handling.</li><li>Render representative real documents. Check text, totals, page breaks, and visual output.</li><li>Measure your own workload. Use the <a href="benchmarks.html">recorded benchmarks</a> as a reference, not a prediction.</li></ol>`
+<ol><li>Inventory the document features and output helpers your app uses.</li><li>Check the supported types, colors, image formats, and font variants.</li><li>Start with the full root import, then choose optional features if bundle size matters.</li><li>Adapt downloads, file writes, and any callback-based output handling.</li><li>Render representative real documents. Check text, totals, page breaks, and visual output.</li><li>Measure your own workload. Use the <a href="benchmarks/">recorded benchmarks</a> as a reference, not a prediction.</li></ol>`
 	},
 	{
 		slug: 'benchmarks',

@@ -1,4 +1,5 @@
 import type { Page } from './content';
+import { pagePath } from './routes';
 
 function decode(text: string): string {
 	return text
@@ -49,7 +50,7 @@ function markdown(page: Page): string {
 		.replace(
 			/<a\b[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/g,
 			(_, url, label) =>
-				`[${prose(label).replace(/\s+/g, ' ').trim()}](${decode(url.startsWith('#') ? `${page.slug}.html${url}` : url)})`
+				`[${prose(label).replace(/\s+/g, ' ').trim()}](${decode(url.startsWith('#') ? `${pagePath(page.slug)}${url}` : url)})`
 		)
 		.replace(/<table>([\s\S]*?)<\/table>/g, (_, table) => {
 			const rows = [...table.matchAll(/<tr>([\s\S]*?)<\/tr>/g)].map(
@@ -85,9 +86,9 @@ function markdown(page: Page): string {
 }
 
 export function buildLlmIndex(pages: Page[], version: string): string {
-	return `# MinkPDF\n\n> A compact TypeScript PDF engine with zero runtime package dependencies, familiar document definitions, and optional feature modules.\n\nVersion: ${version}. MinkPDF implements a subset of pdfmake's API; layouts and pagination can differ.\n\n## Documentation\n\n${pages.map((page) => `- [${page.title}](${page.slug}.html): ${page.description}`).join('\n')}\n- [Full documentation](llms-full.txt): Complete text of all six pages, including code examples, API tables, compatibility limits, and recorded benchmarks.\n\n## Project\n\n- [npm package](https://www.npmjs.com/package/minkpdf): Install with npm install minkpdf.\n- [Source repository](https://github.com/accntech/minkpdf): TypeScript implementation, tests, benchmark scripts, and MIT license.\n`;
+	return `# MinkPDF\n\n> A compact TypeScript PDF engine with zero runtime package dependencies, familiar document definitions, and optional feature modules.\n\nVersion: ${version}. MinkPDF implements a subset of pdfmake's API; layouts and pagination can differ.\n\n## Documentation\n\n${pages.map((page) => `- [${page.title}](${pagePath(page.slug)}): ${page.description}`).join('\n')}\n- [Full documentation](llms-full.txt): Complete text of all six pages, including code examples, API tables, compatibility limits, and recorded benchmarks.\n\n## Project\n\n- [npm package](https://www.npmjs.com/package/minkpdf): Install with npm install minkpdf.\n- [Source repository](https://github.com/accntech/minkpdf): TypeScript implementation, tests, benchmark scripts, and MIT license.\n`;
 }
 
 export function buildLlmDocumentation(pages: Page[], version: string): string {
-	return `# MinkPDF documentation\n\n> A compact TypeScript PDF engine with zero runtime package dependencies.\n\nVersion: ${version}\nPackage: [minkpdf on npm](https://www.npmjs.com/package/minkpdf)\nSource: [accntech/minkpdf](https://github.com/accntech/minkpdf)\n\nThis text is generated from the same content as the documentation site. Code examples, API tables, compatibility limits, and recorded benchmark results are included below. Relative links resolve from this file's location, including on GitHub Pages project sites.\n\n## Documentation pages\n\n${pages.map((page) => `- [${page.title}](${page.slug}.html): ${page.description}`).join('\n')}\n\n${pages.map((page) => `## ${page.title}\n\nPage: [${page.title}](${page.slug}.html)\n\n${page.description}\n\n${markdown(page)}`).join('\n\n---\n\n')}\n`;
+	return `# MinkPDF documentation\n\n> A compact TypeScript PDF engine with zero runtime package dependencies.\n\nVersion: ${version}\nPackage: [minkpdf on npm](https://www.npmjs.com/package/minkpdf)\nSource: [accntech/minkpdf](https://github.com/accntech/minkpdf)\n\nThis text is generated from the same content as the documentation site. Code examples, API tables, compatibility limits, and recorded benchmark results are included below. Relative links resolve from this file's location, including on GitHub Pages project sites.\n\n## Documentation pages\n\n${pages.map((page) => `- [${page.title}](${pagePath(page.slug)}): ${page.description}`).join('\n')}\n\n${pages.map((page) => `## ${page.title}\n\nPage: [${page.title}](${pagePath(page.slug)})\n\n${page.description}\n\n${markdown(page)}`).join('\n\n---\n\n')}\n`;
 }

@@ -223,7 +223,7 @@ import { createPdf } from 'minkpdf/core';
 const bytes = await createPdf({ content: 'Hello' }).getBuffer();
 ```
 
-Use `createPdfEngine()` from `minkpdf/core` with feature factories from `minkpdf/tables`, `minkpdf/images`, and `minkpdf/truetype` to include only the capabilities you need. The existing `minkpdf` root import still enables every feature. See the [optional-feature guide](https://accntech.github.io/minkpdf/installation.html#optional-features) and [engine reference](https://accntech.github.io/minkpdf/api.html#engine) for composition, registration, and errors.
+Use `createPdfEngine()` from `minkpdf/core` with feature factories from `minkpdf/tables`, `minkpdf/images`, and `minkpdf/truetype` to include only the capabilities you need. The existing `minkpdf` root import still enables every feature. See the [optional-feature guide](https://accntech.github.io/minkpdf/installation/#optional-features) and [engine reference](https://accntech.github.io/minkpdf/api/#engine) for composition, registration, and errors.
 
 ### Runtime requirements
 
