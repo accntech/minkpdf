@@ -10,7 +10,7 @@ MinkPDF generates PDFs from TypeScript document definitions in browsers, Node.js
 
 The engine implements layout, pagination, font parsing and subsetting, image embedding, compression, and PDF serialization. Its document definition follows a supported subset of pdfmake's API; see [compatibility and limitations](#compatibility-and-limitations) before migrating.
 
-The static documentation site covers the project rationale, setup, complete API reference, a
+The [documentation site](https://accntech.github.io/minkpdf/) covers the project rationale, setup, complete API reference, a
 pdfmake comparison, and benchmark graphs. See [building and publishing the documentation](./docs/github-pages.md)
 to preview it locally or deploy it to GitHub Pages.
 
