@@ -270,6 +270,12 @@ bun benchmarks/tree-shaking.ts --compare-baseline=benchmarks/tree-shaking-baseli
 
 Maintainers: see [Publishing releases](./docs/releases.md) for staging, approving, and publishing npm versions.
 
+## Contributing
+
+Bug reports, documentation improvements, and pull requests are welcome. See the
+[contributing guide](./CONTRIBUTING.md) for setup, checks, and pull request guidance. Follow the
+[Code of Conduct](./CODE_OF_CONDUCT.md) when participating in the project.
+
 ## License
 
 MinkPDF is licensed under the [MIT License](./LICENSE). The test font fixtures retain their separate SIL Open Font licenses.
