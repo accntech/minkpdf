@@ -1,16 +1,36 @@
 {
 	"name": "minkpdf",
 	"version": "0.1.0",
-	"private": true,
+	"description": "A standalone TypeScript PDF engine with zero package dependencies",
 	"type": "module",
+	"main": "./dist/index.js",
+	"types": "./src/index.ts",
+	"files": ["dist", "src", "assets/icon.png"],
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/accntech/minkpdf.git"
+	},
+	"homepage": "https://github.com/accntech/minkpdf#readme",
+	"bugs": "https://github.com/accntech/minkpdf/issues",
+	"publishConfig": {
+		"access": "public",
+		"registry": "https://registry.npmjs.org/"
+	},
 	"scripts": {
-		"build": "bun build src/index.ts --target browser --minify --outdir dist",
+		"build": "bun build src/index.ts src/interfaces.ts --target browser --minify --outdir dist",
+		"prepack": "bun run build",
 		"test": "bun test",
 		"benchmark": "bun benchmarks/pdfmake.ts"
 	},
 	"exports": {
-		".": "./src/index.ts",
-		"./interfaces": "./src/interfaces.ts"
+		".": {
+			"types": "./src/index.ts",
+			"default": "./dist/index.js"
+		},
+		"./interfaces": {
+			"types": "./src/interfaces.ts",
+			"default": "./dist/interfaces.js"
+		}
 	},
 	"packageManager": "bun@1.4.2"
 }

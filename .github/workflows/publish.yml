@@ -1,0 +1,65 @@
+name: Publish to npm
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: npm-publish-${{ github.event.release.tag_name }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.release.tag_name }}
+          persist-credentials: false
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          registry-url: https://registry.npmjs.org/
+          package-manager-cache: false
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Set package version from release tag
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          node --input-type=module <<'NODE'
+          import { execFileSync } from 'node:child_process';
+          const tag = process.env.RELEASE_TAG;
+          if (!/^v?\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/.test(tag)) {
+            throw new Error('Release tag must be a version such as v0.1.0 or v0.2.0-beta.1');
+          }
+          execFileSync('npm', ['version', tag.replace(/^v/, ''), '--no-git-tag-version', '--allow-same-version'], { stdio: 'inherit' });
+          NODE
+
+      - name: Install PDF test tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes poppler-utils
+
+      - name: Run tests
+        run: bun test
+
+      - name: Publish package
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          RELEASE_PRERELEASE: ${{ github.event.release.prerelease }}
+        run: |
+          version=$(node -p "require('./package.json').version")
+          tag=latest
+          if [[ "$RELEASE_PRERELEASE" == "true" || "$version" == *-* ]]; then
+            tag=next
+          fi
+          npm publish --provenance --access public --tag "$tag"

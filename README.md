@@ -19,13 +19,23 @@ const bytes = await document.getBuffer();
 
 `createPdf()` returns Promise-based `getBuffer()`, `getBlob()`, `getBase64()`, and `getDataUrl()` methods. `addFonts()`, assignment to `pdf.fonts`, `addVirtualFileSystem()`, and `addTableLayouts()` register reusable resources. Nothing fetches fonts or images automatically.
 
-Use the package directly in TypeScript, or build a standalone ES module from this project:
+Install the package with `npm install minkpdf`. The npm package includes built ES modules and TypeScript types. To build a standalone ES module from this project:
 
 ```sh
 bun run build
 ```
 
 The resulting `dist/index.js` has no imports or bundled third-party code and can run in a browser or a modern Node/Bun runtime.
+
+## Publishing releases
+
+The `Publish to npm` GitHub Actions workflow runs when a GitHub release is published. It checks out the release tag, sets the npm package version from that tag, runs the PDF tests with Poppler, builds the package, and publishes it with provenance. Use version tags such as `v0.1.0` or `v0.2.0-beta.1`; no separate version commit is required. Stable releases use npm's `latest` tag. GitHub prereleases and versions containing a prerelease suffix use `next`.
+
+For the first publish, create a granular npm access token with permission to publish new packages and bypass 2FA, then add it to this repository's Actions secrets as `NPM_TOKEN`. No token is stored in the repository. The npm package name is `minkpdf`.
+
+After the package exists, configure [npm trusted publishing](https://docs.npmjs.com/trusted-publishers/) in the package settings with GitHub organization `accntech`, repository `minkpdf`, and workflow filename `publish.yml`. Leave the environment name empty and enable direct publishing with `npm publish`. Publish a new release within two days of adding the trusted publisher to validate the configuration. Once trusted publishing works, remove the `NPM_TOKEN` secret; subsequent releases authenticate through GitHub's OIDC token.
+
+Each release must use a new npm version. Publishing an existing version again fails; drafts and tag pushes alone do not publish to npm. Check the workflow result in GitHub Actions after publishing a release.
 
 ## Compatibility
 
