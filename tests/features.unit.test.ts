@@ -33,7 +33,9 @@ test('missing features fail through nested content and intrinsic measurement', a
 test('all eight feature combinations render with either descriptor order', async () => {
 	for (let mask = 0; mask < 8; mask++) {
 		const descriptors = [tables(), images(), trueTypeFonts()].filter((_, bit) => mask & (1 << bit));
-		for (const features of [descriptors, [...descriptors].reverse()]) {
+		const orders =
+			descriptors.length > 1 ? [descriptors, [...descriptors].reverse()] : [descriptors];
+		for (const features of orders) {
 			const pdf = createPdfEngine({ features });
 			if (mask & 4) {
 				pdf.addVirtualFileSystem({

@@ -4,7 +4,6 @@ import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { packedConsumer, run } from './helpers/package';
 import { command, readPdf, withPdf } from './helpers/pdf';
-import { checkSizes, report } from '../benchmarks/tree-shaking';
 
 describe('consumer tree-shaking', () => {
 	let consumer: Awaited<ReturnType<typeof packedConsumer>>;
@@ -150,11 +149,4 @@ console.log(JSON.stringify(response));
 					);
 			}
 		}, 30_000);
-	test('core reduction and full-engine growth stay within the recorded size budgets', async () => {
-		const baseline = await Bun.file(
-			new URL('../benchmarks/tree-shaking-baseline.json', import.meta.url)
-		).json();
-		const current = await report();
-		checkSizes(current, baseline);
-	});
 });

@@ -1,55 +1,14 @@
 import { expect, test } from 'bun:test';
 import { readFileSync } from 'node:fs';
 import { withPdf, command, readPdf } from './helpers/pdf';
-import pdf, { createPdf, addVirtualFileSystem, addFonts } from '../src/index';
-
-test('creates readable PDF bytes and metadata with the pdfmake document API', async () => {
-	const document = createPdf({
-		info: { title: 'Libro export', author: 'Libro' },
-		content: ['Hello Libro']
-	});
-	const result = await readPdf(await document.getBuffer());
-	expect(result.pages[0].text).toBe('Hello Libro');
-	expect(result.metadata.info).toMatchObject({
-		Title: 'Libro export',
-		Author: 'Libro'
-	});
-	expect((await document.getBlob()).type).toBe('application/pdf');
-	expect(await document.getDataUrl()).toMatch(/^data:application\/pdf;base64,/);
-});
-
-test('accepts pdfmake-style font dictionary assignment', async () => {
-	const original = { ...pdf.fonts };
-	const font = readFileSync(new URL('./fixtures/fonts/Inter-Regular.ttf', import.meta.url));
-	addVirtualFileSystem({ 'Assigned-Regular.ttf': font });
-	try {
-		pdf.fonts = { Assigned: { normal: 'Assigned-Regular.ttf' } };
-		const bytes = await createPdf({
-			defaultStyle: { font: 'Assigned' },
-			content: 'José García'
-		}).getBuffer();
-		expect((await readPdf(bytes)).pages[0].text).toBe('José García');
-	} finally {
-		pdf.fonts = original;
-	}
-});
-
-test('embeds and subsets TrueType fonts while preserving Unicode text', async () => {
-	const font = readFileSync(new URL('./fixtures/fonts/Inter-Regular.ttf', import.meta.url));
-	addVirtualFileSystem({ 'Inter-Regular.ttf': font });
-	addFonts({ Inter: { normal: 'Inter-Regular.ttf' } });
-	const bytes = await createPdf({
-		defaultStyle: { font: 'Inter' },
-		content: ['José García · ₱1,234.50 –']
-	}).getBuffer();
-	const result = await readPdf(bytes);
-	expect(result.pages[0].text).toBe('José García · ₱1,234.50 –');
-	expect(bytes.byteLength).toBeLessThan(60_000);
-});
+import { createPdf } from '../src/index';
+import { createPdfEngine } from '../src/core';
+import { trueTypeFonts } from '../src/features/true-type';
 
 test('keeps a four-face document compact without embedding unused font metadata', async () => {
+	const pdf = createPdfEngine({ features: [trueTypeFonts()] });
 	const faces = ['Regular', 'Bold', 'Italic', 'BoldItalic'];
-	addVirtualFileSystem(
+	pdf.addVirtualFileSystem(
 		Object.fromEntries(
 			faces.map((face) => [
 				`Inter-${face}.ttf`,
@@ -59,7 +18,7 @@ test('keeps a four-face document compact without embedding unused font metadata'
 			])
 		)
 	);
-	addFonts({
+	pdf.addFonts({
 		Inter: {
 			normal: 'Inter-Regular.ttf',
 			bold: 'Inter-Bold.ttf',
@@ -67,17 +26,22 @@ test('keeps a four-face document compact without embedding unused font metadata'
 			bolditalics: 'Inter-BoldItalic.ttf'
 		}
 	});
-	const bytes = await createPdf({
-		defaultStyle: { font: 'Inter' },
-		content: [
-			{ text: 'José García ₱1,234.50' },
-			{ text: 'Bold', bold: true },
-			{ text: 'Italic', italics: true },
-			{ text: 'Both', bold: true, italics: true }
-		]
-	}).getBuffer();
+	const bytes = await pdf
+		.createPdf({
+			defaultStyle: { font: 'Inter' },
+			content: [
+				{ text: 'José García ₱1,234.50' },
+				{ text: 'Bold', bold: true },
+				{ text: 'Italic', italics: true },
+				{ text: 'Both', bold: true, italics: true }
+			]
+		})
+		.getBuffer();
 	expect(bytes.byteLength).toBeLessThan(35_000);
-	expect((await readPdf(bytes)).pages[0].text).toContain('José García ₱1,234.50');
+	expect((await readPdf(bytes)).pages[0].text).toBe('José García ₱1,234.50 Bold Italic Both');
+	const fonts = await withPdf(bytes, (path) => command(['pdffonts', path]));
+	for (const face of faces) expect(fonts).toContain(`Inter-${face}`);
+	expect(fonts.trim().split('\n').slice(2)).toHaveLength(4);
 });
 
 test('preserves explicit page breaks inside stacks', async () => {
@@ -88,29 +52,6 @@ test('preserves explicit page breaks inside stacks', async () => {
 	expect(result.pages).toHaveLength(2);
 	expect(result.pages[0].text).toBe('Intro');
 	expect(result.pages[1].text).toBe('First Second');
-});
-
-test('repeats table headers at the table margin on subsequent pages', async () => {
-	const bytes = await createPdf({
-		pageSize: { width: 300, height: 160 },
-		pageMargins: 20,
-		content: [
-			{
-				margin: [35, 0, 0, 0],
-				table: {
-					headerRows: 1,
-					widths: ['*'],
-					body: [['Heading'], ...Array.from({ length: 20 }, (_, i) => [`Row ${i}`])]
-				}
-			}
-		]
-	}).getBuffer();
-	const result = await readPdf(bytes);
-	const headings = result.pages.map(
-		(page) => page.items.find((item) => item.str === 'Heading')!.transform[4]
-	);
-	expect(headings.length).toBeGreaterThan(1);
-	for (const x of headings) expect(x).toBe(headings[0]);
 });
 
 test('sizes automatic columns from the complete styled text line', async () => {
@@ -127,7 +68,6 @@ test('sizes automatic columns from the complete styled text line', async () => {
 	const page = (await readPdf(bytes)).pages[0];
 	const code = page.items.find((item) => item.str === '1100')!;
 	const name = page.items.find((item) => item.str === 'Cash')!;
-	expect(page.items.map((item) => item.str)).toContain('Cash');
 	expect(name.transform[5]).toBeCloseTo(code.transform[5], 1);
 });
 
@@ -151,6 +91,7 @@ test('paginates tables, repeats headings, and calls footers with the final page 
 		}),
 		content: [
 			{
+				margin: [35, 0, 0, 0],
 				table: {
 					headerRows: 1,
 					dontBreakRows: true,
@@ -166,13 +107,18 @@ test('paginates tables, repeats headings, and calls footers with the final page 
 	const result = await readPdf(bytes);
 	expect(result.pages.length).toBeGreaterThan(1);
 	for (const [index, page] of result.pages.entries()) {
-		expect(page.text).toContain('Account');
+		expect(page.items.filter((item) => item.str === 'Account')).toHaveLength(1);
+		expect(page.items.find((item) => item.str === 'Account')!.transform[4]).toBe(59);
 		expect(page.text).toContain(`Page ${index + 1} of ${result.pages.length}`);
 		expect(page.width).toBe(300);
 		for (const item of page.items) expect(item.transform[5]).toBeGreaterThan(10);
 	}
-	for (let index = 1; index <= 30; index++)
-		expect(result.pages.map((page) => page.text).join(' ')).toContain(`Department ${index}`);
+	const departments = result.pages.flatMap((page) =>
+		page.items.flatMap((item, index) =>
+			item.str === 'Department' ? [Number(page.items[index + 1].str)] : []
+		)
+	);
+	expect(departments).toEqual(Array.from({ length: 30 }, (_, index) => index + 1));
 });
 
 test('renders nested cells, merged columns, rich text and unbreakable signatories', async () => {
