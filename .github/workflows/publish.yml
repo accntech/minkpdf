@@ -40,6 +40,8 @@ jobs:
         run: npm install --global npm@11.15.0
 
       - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.4.2'
 
       - name: Set package version from release tag
         env:
@@ -59,8 +61,14 @@ jobs:
           sudo apt-get update
           sudo apt-get install --yes poppler-utils
 
-      - name: Run tests
+      - name: Build package
+        run: bun run build
+
+      - name: Run PDF, package, and consumer tests
         run: bun test
+
+      - name: Verify bundle size budgets
+        run: bun benchmarks/tree-shaking.ts --compare-baseline=benchmarks/tree-shaking-baseline.json
 
       - name: Stage package for approval
         env:

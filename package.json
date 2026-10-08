@@ -4,9 +4,15 @@
 	"description": "A standalone TypeScript PDF engine with zero package dependencies",
 	"license": "MIT",
 	"type": "module",
+	"sideEffects": false,
 	"main": "./dist/index.js",
 	"types": "./src/index.ts",
-	"files": ["dist", "src", "assets/icon.png"],
+	"files": [
+		"dist",
+		"src",
+		"assets/icon.png",
+		"docs"
+	],
 	"repository": {
 		"type": "git",
 		"url": "git+https://github.com/accntech/minkpdf.git"
@@ -18,7 +24,7 @@
 		"registry": "https://registry.npmjs.org/"
 	},
 	"scripts": {
-		"build": "bun build src/index.ts src/interfaces.ts --target browser --minify --outdir dist",
+		"build": "bun scripts/build.ts",
 		"prepack": "bun run build",
 		"test": "bun test",
 		"benchmark": "bun benchmarks/pdfmake.ts"
@@ -31,6 +37,22 @@
 		"./interfaces": {
 			"types": "./src/interfaces.ts",
 			"default": "./dist/interfaces.js"
+		},
+		"./core": {
+			"types": "./src/core.ts",
+			"default": "./dist/core.js"
+		},
+		"./tables": {
+			"types": "./src/features/tables.ts",
+			"default": "./dist/features/tables.js"
+		},
+		"./images": {
+			"types": "./src/features/images.ts",
+			"default": "./dist/features/images.js"
+		},
+		"./truetype": {
+			"types": "./src/features/true-type.ts",
+			"default": "./dist/features/true-type.js"
 		}
 	},
 	"packageManager": "bun@1.4.2"

@@ -2,75 +2,44 @@ import type {
 	Content,
 	ContentNode,
 	CustomTableLayout,
-	Margins,
-	Size,
 	Style,
 	TDocumentDefinitions
-} from './interfaces';
-import type { PdfFont } from './font';
-
-export type Draw =
-	| { kind: 'text'; x: number; y: number; text: string; style: Style; font: PdfFont; width: number }
-	| {
-			kind: 'rect';
-			x: number;
-			y: number;
-			width: number;
-			height: number;
-			color: string;
-			opacity: number;
-	  }
-	| { kind: 'line'; x: number; y: number; x2: number; y2: number; width: number; color: string }
-	| { kind: 'image'; x: number; y: number; width: number; height: number; source: string };
-export type Block = {
-	height: number;
-	draws: Draw[];
-	repeat?: Block[];
-	keep?: number;
-	before?: boolean;
-	after?: boolean;
-	atomic?: boolean;
-};
-type Box = { width: number; height: number; blocks: Block[] };
-type FontResolver = (style: Style) => PdfFont;
-type ImageSize = (source: string) => { width: number; height: number };
-
-export function margins(value: Margins = 0): [number, number, number, number] {
-	if (typeof value === 'number') return [value, value, value, value];
-	if (value.length === 2) return [value[0], value[1], value[0], value[1]];
-	return value;
-}
-export function translate(draw: Draw, x: number, y: number): Draw {
-	return draw.kind === 'line'
-		? { ...draw, x: draw.x + x, y: draw.y + y, x2: draw.x2 + x, y2: draw.y2 + y }
-		: { ...draw, x: draw.x + x, y: draw.y + y };
-}
-function flatten(box: Box): Draw[] {
-	let y = 0;
-	return box.blocks.flatMap((block) => {
-		const draws = block.draws.map((draw) => translate(draw, 0, y));
-		y += block.height;
-		return draws;
-	});
-}
-function box(width: number, blocks: Block[]): Box {
-	return { width, blocks, height: blocks.reduce((total, block) => total + block.height, 0) };
-}
-function node(value: Content): ContentNode {
-	return Array.isArray(value)
-		? { stack: value }
-		: typeof value === 'object'
-			? value
-			: { text: String(value) };
-}
+} from './interfaces.js';
+import {
+	requireFeature,
+	type ImageRenderer,
+	type LayoutContext,
+	type TableFeature,
+	type TableNode
+} from './feature.js';
+import {
+	box,
+	flatten,
+	margins,
+	node,
+	translate,
+	widths as resolveWidths,
+	type Block,
+	type Box,
+	type Draw,
+	type FontResolver
+} from './layout-helpers.js';
 
 export class Layout {
 	constructor(
 		private document: TDocumentDefinitions,
 		private font: FontResolver,
-		private image: ImageSize,
-		private layouts: Record<string, CustomTableLayout>
+		private images: ImageRenderer | undefined,
+		private layouts: Record<string, CustomTableLayout>,
+		private tables: TableFeature | undefined
 	) {}
+	private get context(): LayoutContext {
+		return {
+			content: (value, width, style) => this.content(value, width, style),
+			intrinsic: (value, style) => this.intrinsic(value, style),
+			layouts: this.layouts
+		};
+	}
 	private style(value: ContentNode, parent: Style): Style {
 		const names = typeof value.style === 'string' ? [value.style] : (value.style ?? []);
 		const style = {
@@ -191,200 +160,19 @@ export class Layout {
 				left +
 				right
 			);
-		if (value.image) return (value.fit?.[0] ?? this.image(value.image).width) + left + right;
-		if (value.table) {
-			const count = value.table.body[0]?.length ?? 0;
+		if (value.image)
 			return (
-				Array.from(
-					{ length: count },
-					(_, index) =>
-						Math.max(
-							0,
-							...value.table!.body.map((row) => this.intrinsic(row[index] ?? '', style))
-						) + 8
-				).reduce((a, b) => a + b, 0) +
+				requireFeature(this.images, 'images').intrinsic(value as ContentNode & { image: string }) +
 				left +
 				right
 			);
-		}
-		return 0;
-	}
-	private widths(sizes: Size[], intrinsic: number[], available: number): number[] {
-		let remaining = available,
-			stars = 0;
-		const widths = sizes.map((size, index) => {
-			if (size === '*') {
-				stars++;
-				return 0;
-			}
-			const width =
-				size === 'auto'
-					? intrinsic[index]
-					: typeof size === 'number'
-						? size
-						: (parseFloat(size) * available) / 100;
-			remaining -= width;
-			return width;
-		});
-		return widths.map((width, index) =>
-			sizes[index] === '*' ? Math.max(1, remaining / stars) : width
-		);
-	}
-	private table(
-		value: ContentNode & { table: NonNullable<ContentNode['table']> },
-		width: number,
-		style: Style
-	): Box {
-		const table = value.table,
-			count = table.body[0]?.length ?? 0;
-		if (!count) return box(width, []);
-		const layout: CustomTableLayout =
-			typeof value.layout === 'string'
-				? value.layout === 'noBorders'
-					? { defaultBorder: false, hLineWidth: () => 0, vLineWidth: () => 0 }
-					: (this.layouts[value.layout] ??
-						(() => {
-							throw new Error(`Unknown PDF table layout: ${value.layout}`);
-						})())
-				: (value.layout ?? {});
-		const padding = (index: number) => [
-			layout.paddingLeft?.(index, value) ?? 4,
-			layout.paddingTop?.(index, value) ?? 2,
-			layout.paddingRight?.(index, value) ?? 4,
-			layout.paddingBottom?.(index, value) ?? 2
-		];
-		const intrinsic = Array.from(
-			{ length: count },
-			(_, index) =>
-				Math.max(
-					0,
-					...table.body.map((row) => {
-						const cell = node(row[index] ?? '');
-						return (cell.colSpan ?? 1) > 1 ? 0 : this.intrinsic(cell, style);
-					})
-				) +
-				padding(index)[0] +
-				padding(index)[2]
-		);
-		const widths = this.widths(table.widths ?? Array(count).fill('*'), intrinsic, width);
-		const totalWidth = widths.reduce((a, b) => a + b, 0);
-		const horizontal = (index: number, y: number, cells: ContentNode[]): Draw[] => {
-			const thickness =
-				layout.hLineWidth?.(index, value) ?? (layout.defaultBorder === false ? 0 : 1);
-			if (!thickness) return [];
-			let x = 0;
-			return cells.flatMap((cell, column) => {
-				const span = cell.colSpan ?? 1;
-				const cellWidth = widths.slice(column, column + span).reduce((a, b) => a + b, 0);
-				const enabled =
-					cell.border?.[index === table.body.length ? 3 : 1] ?? layout.defaultBorder !== false;
-				const draw: Draw = {
-					kind: 'line',
-					x,
-					y,
-					x2: x + cellWidth,
-					y2: y,
-					width: thickness,
-					color: layout.hLineColor?.(index, value) ?? '#000000'
-				};
-				x += widths[column];
-				return enabled ? [draw] : [];
-			});
-		};
-		const rows: Block[] = table.body.map((row, index) => {
-			const contents: {
-				node: ContentNode;
-				box: Box;
-				x: number;
-				width: number;
-				padding: number[];
-				column: number;
-			}[] = [];
-			let x = 0;
-			for (let column = 0; column < count;) {
-				const cell = node(row[column] ?? ''),
-					span = cell.colSpan ?? 1;
-				const cellWidth = widths.slice(column, column + span).reduce((a, b) => a + b, 0),
-					space = padding(column);
-				contents.push({
-					node: cell,
-					box: this.content(cell, cellWidth - space[0] - space[2], style),
-					x,
-					width: cellWidth,
-					padding: space,
-					column
-				});
-				x += cellWidth;
-				column += span;
-			}
-			const requestedHeight =
-				typeof table.heights === 'function'
-					? table.heights(index)
-					: Array.isArray(table.heights)
-						? table.heights[index]
-						: (table.heights ?? 0);
-			const height = Math.max(
-				requestedHeight,
-				...contents.map((cell) => cell.box.height + cell.padding[1] + cell.padding[3])
+		if (value.table)
+			return (
+				requireFeature(this.tables, 'tables').intrinsic(value as TableNode, style, this.context) +
+				left +
+				right
 			);
-			const draws: Draw[] = [];
-			for (const cell of contents) {
-				const fill = cell.node.fillColor ?? layout.fillColor?.(index, value, cell.column);
-				if (fill)
-					draws.push({
-						kind: 'rect',
-						x: cell.x,
-						y: 0,
-						width: cell.width,
-						height,
-						color: fill,
-						opacity: cell.node.fillOpacity ?? 1
-					});
-				draws.push(
-					...flatten(cell.box).map((draw) =>
-						translate(draw, cell.x + cell.padding[0], cell.padding[1])
-					)
-				);
-				const thickness =
-					layout.vLineWidth?.(cell.column, value) ?? (layout.defaultBorder === false ? 0 : 1);
-				if (thickness && (cell.node.border?.[0] ?? layout.defaultBorder !== false))
-					draws.push({
-						kind: 'line',
-						x: cell.x,
-						y: 0,
-						x2: cell.x,
-						y2: height,
-						width: thickness,
-						color: layout.vLineColor?.(cell.column, value) ?? '#000000'
-					});
-			}
-			const thickness =
-				layout.vLineWidth?.(count, value) ?? (layout.defaultBorder === false ? 0 : 1);
-			if (thickness && (contents.at(-1)?.node.border?.[2] ?? layout.defaultBorder !== false))
-				draws.push({
-					kind: 'line',
-					x: totalWidth,
-					y: 0,
-					x2: totalWidth,
-					y2: height,
-					width: thickness,
-					color: layout.vLineColor?.(count, value) ?? '#000000'
-				});
-			draws.push(...horizontal(index, 0, row.map(node)));
-			if (index === table.body.length - 1)
-				draws.push(...horizontal(index + 1, height, row.map(node)));
-			return { height, draws, atomic: table.dontBreakRows };
-		});
-		const headers = rows.slice(0, table.headerRows ?? 0);
-		for (let index = 0; index < rows.length; index++) {
-			if (index >= headers.length) rows[index].repeat = headers;
-			if (index < headers.length)
-				rows[index].keep = Math.max(
-					0,
-					headers.length - index - 1 + (table.keepWithHeaderRows ?? 1)
-				);
-		}
-		return box(totalWidth, rows);
+		return 0;
 	}
 	content(
 		content: Content,
@@ -404,7 +192,7 @@ export class Layout {
 			);
 		else if (value.columns) {
 			const gap = value.columnGap ?? 0;
-			const widths = this.widths(
+			const widths = resolveWidths(
 				value.columns.map((child) => node(child).width ?? '*'),
 				value.columns.map((child) => this.intrinsic(child, style)),
 				width - gap * (value.columns.length - 1)
@@ -419,33 +207,19 @@ export class Layout {
 				x += widths[index] + gap;
 			});
 			result = box(width, [{ height, draws }]);
-		} else if (value.table)
-			result = this.table(
-				value as ContentNode & { table: NonNullable<ContentNode['table']> },
+		} else if (value.table) {
+			result = requireFeature(this.tables, 'tables').layout(
+				value as TableNode,
+				width,
+				style,
+				this.context
+			);
+		} else if (value.image) {
+			result = requireFeature(this.images, 'images').layout(
+				value as ContentNode & { image: string },
 				width,
 				style
 			);
-		else if (value.image) {
-			const dimensions = this.image(value.image);
-			const ratio = value.fit
-				? Math.min(value.fit[0] / dimensions.width, value.fit[1] / dimensions.height)
-				: typeof value.width === 'number'
-					? value.width / dimensions.width
-					: 1;
-			const imageWidth = dimensions.width * ratio,
-				height = value.height ?? dimensions.height * ratio;
-			const x =
-				style.alignment === 'right'
-					? width - imageWidth
-					: style.alignment === 'center'
-						? (width - imageWidth) / 2
-						: 0;
-			result = box(imageWidth, [
-				{
-					height,
-					draws: [{ kind: 'image', x, y: 0, width: imageWidth, height, source: value.image }]
-				}
-			]);
 		} else if (value.canvas) {
 			const draws: Draw[] = value.canvas.map((line) => {
 				if (line.type !== 'line') throw new Error(`Unsupported PDF canvas element: ${line.type}`);

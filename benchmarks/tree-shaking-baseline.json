@@ -1,0 +1,22 @@
+{
+  "settings": {
+    "bun": "1.4.2",
+    "target": "browser",
+    "minify": true,
+    "content": "Hello"
+  },
+  "sizes": {
+    "namedRoot": {
+      "raw": 23976,
+      "gzip": 9936
+    },
+    "defaultRoot": {
+      "raw": 24311,
+      "gzip": 10071
+    }
+  },
+  "consumers": {
+    "namedRoot": "import { createPdf } from './dist/index.js'; globalThis.pdf = createPdf({content:'Hello'});",
+    "defaultRoot": "import pdf from './dist/index.js'; globalThis.pdf = pdf.createPdf({content:'Hello'});"
+  }
+}

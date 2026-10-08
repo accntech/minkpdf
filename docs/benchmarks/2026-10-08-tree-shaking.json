@@ -1,0 +1,42 @@
+{
+  "settings": {
+    "bun": "1.4.2",
+    "target": "browser",
+    "minify": true,
+    "content": "Hello"
+  },
+  "consumers": {
+    "namedRoot": "import { createPdf } from './dist/index.js'; globalThis.pdf = createPdf({content:'Hello'});",
+    "defaultRoot": "import pdf from './dist/index.js'; globalThis.pdf = pdf.createPdf({content:'Hello'});",
+    "core": "import { createPdf } from './dist/core.js'; globalThis.pdf = createPdf({content:'Hello'});",
+    "tables": "import { createPdfEngine } from './dist/core.js'; import { tables } from './dist/features/tables.js'; globalThis.pdf = createPdfEngine({features:[tables()]}).createPdf({content:'Hello'});",
+    "images": "import { createPdfEngine } from './dist/core.js'; import { images } from './dist/features/images.js'; globalThis.pdf = createPdfEngine({features:[images()]}).createPdf({content:'Hello'});",
+    "truetype": "import { createPdfEngine } from './dist/core.js'; import { trueTypeFonts } from './dist/features/true-type.js'; globalThis.pdf = createPdfEngine({features:[trueTypeFonts()]}).createPdf({content:'Hello'});"
+  },
+  "sizes": {
+    "namedRoot": {
+      "raw": 25560,
+      "gzip": 10544
+    },
+    "defaultRoot": {
+      "raw": 25576,
+      "gzip": 10555
+    },
+    "core": {
+      "raw": 13391,
+      "gzip": 5749
+    },
+    "tables": {
+      "raw": 15913,
+      "gzip": 6705
+    },
+    "images": {
+      "raw": 16973,
+      "gzip": 7155
+    },
+    "truetype": {
+      "raw": 19444,
+      "gzip": 8213
+    }
+  }
+}

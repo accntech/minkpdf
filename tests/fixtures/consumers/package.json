@@ -1,0 +1,10 @@
+{
+	"private": true,
+	"type": "module",
+	"devDependencies": {
+		"esbuild": "0.28.2",
+		"rollup": "4.64.2",
+		"typescript": "5.9.3",
+		"@rollup/plugin-node-resolve": "16.0.3"
+	}
+}

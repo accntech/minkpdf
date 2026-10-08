@@ -1,4 +1,4 @@
-import { concat, fromBase64, inflate, PdfWriter } from './binary';
+import { concat, fromBase64, inflate, PdfWriter } from './binary.js';
 
 export type PdfImage = {
 	bytes: Uint8Array;
@@ -59,7 +59,7 @@ export async function embedImage(writer: PdfWriter, image: PdfImage): Promise<nu
 	const parts: Uint8Array[] = [];
 	let palette = new Uint8Array(),
 		transparency = new Uint8Array();
-	for (let offset = 8; offset < bytes.length;) {
+	for (let offset = 8; offset < bytes.length; ) {
 		const length = view.getUint32(offset),
 			tag = String.fromCharCode(...bytes.subarray(offset + 4, offset + 8));
 		const data = bytes.slice(offset + 8, offset + 8 + length);
