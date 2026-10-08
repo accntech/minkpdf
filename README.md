@@ -10,6 +10,10 @@ MinkPDF generates PDFs from TypeScript document definitions in browsers, Node.js
 
 The engine implements layout, pagination, font parsing and subsetting, image embedding, compression, and PDF serialization. Its document definition follows a supported subset of pdfmake's API; see [compatibility and limitations](#compatibility-and-limitations) before migrating.
 
+The static documentation site covers the project rationale, setup, complete API reference, a
+pdfmake comparison, and benchmark graphs. See [building and publishing the documentation](./docs/github-pages.md)
+to preview it locally or deploy it to GitHub Pages.
+
 ## Install
 
 ```sh
@@ -85,7 +89,7 @@ button.addEventListener('click', async () => {
 });
 ```
 
-Without a bundler, serve the built `dist/index.js` as `/minkpdf.js` and use `import pdf from '/minkpdf.js'` inside a `<script type="module">`. Serve the page over HTTP(S).
+Without a bundler, serve the entire built `dist/` module tree, preserving its relative paths, and import its `index.js` inside a `<script type="module">`. Serve the page over HTTP(S).
 
 ### Unicode text and font variants
 

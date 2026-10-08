@@ -25,6 +25,9 @@
 	},
 	"scripts": {
 		"build": "bun scripts/build.ts",
+		"docs:build": "bun scripts/build-docs.ts",
+		"docs:dev": "bun run docs:build && bun scripts/serve-docs.ts",
+		"docs:test": "bun test tests/docs.unit.test.ts",
 		"prepack": "bun run build",
 		"test": "bun test",
 		"benchmark": "bun benchmarks/pdfmake.ts"
