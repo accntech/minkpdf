@@ -170,7 +170,11 @@ test.each([
 		},
 		'PDF content cannot fit within the page margins'
 	],
-	['invalid color', { content: { text: 'Color', color: 'red' } }, 'Unsupported PDF color: red'],
+	[
+		'invalid color',
+		{ content: { text: 'Color', color: 'not-a-color' } },
+		'Unsupported PDF color: not-a-color'
+	],
 	[
 		'non-finite coordinates',
 		{ content: { canvas: [{ type: 'line', x1: NaN, y1: 0, x2: 10, y2: 10 }] } },

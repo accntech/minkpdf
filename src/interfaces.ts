@@ -1,4 +1,4 @@
-/** The pdfmake document-definition features supported by Libro's PDF engine. */
+/** The pdfmake document-definition features supported by MinkPDF. */
 export type PageOrientation = 'portrait' | 'landscape';
 export type PageSize = 'A4' | 'LETTER' | 'LEGAL' | { width: number; height: number };
 export type Margins = number | [number, number] | [number, number, number, number];
@@ -14,6 +14,10 @@ export interface Style {
 	alignment?: 'left' | 'center' | 'right';
 	noWrap?: boolean;
 	margin?: Margins;
+	marginLeft?: number;
+	marginTop?: number;
+	marginRight?: number;
+	marginBottom?: number;
 	fillColor?: string;
 	fillOpacity?: number;
 	decoration?: 'underline' | 'lineThrough' | 'overline';
@@ -61,6 +65,9 @@ export interface ContentNode extends Style {
 	table?: Table;
 	layout?: TableLayout;
 	colSpan?: number;
+	rowSpan?: number;
+	absolutePosition?: { x: number; y: number };
+	relativePosition?: { x: number; y: number };
 	border?: [boolean, boolean, boolean, boolean];
 	unbreakable?: boolean;
 	pageBreak?: 'before' | 'after';
@@ -101,6 +108,7 @@ export interface TDocumentDefinitions {
 				color?: string;
 				opacity?: number;
 				bold?: boolean;
+				italics?: boolean;
 				fontSize?: number;
 				angle?: number;
 		  };

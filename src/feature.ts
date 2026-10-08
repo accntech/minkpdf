@@ -5,6 +5,7 @@ import type { Box, Draw } from './layout-helpers.js';
 
 export type TableNode = ContentNode & { table: Table };
 export interface LayoutContext {
+	resolve(content: Content): ContentNode;
 	content(content: Content, width: number, parent: Style): Box;
 	intrinsic(content: Content, parent: Style): number;
 	layouts: Record<string, CustomTableLayout>;

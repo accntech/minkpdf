@@ -69,9 +69,16 @@ import { trueTypeFonts } from 'minkpdf/truetype';
 import type { TDocumentDefinitions } from 'minkpdf/interfaces';
 const features: PdfFeature[] = [tables(), images(), trueTypeFonts()];
 const engine: PdfEngine = createPdfEngine({features});
-const definition: TDocumentDefinitions = {content:{table:{body:[['Hello']]}}};
+const definition: TDocumentDefinitions = {
+ styles:{label:{marginTop:2,fillColor:'lightgray'}},
+ content:[
+  {text:'Invoice',absolutePosition:{x:40,y:80}},
+  {text:'Number',relativePosition:{x:10,y:-5},marginBottom:12},
+  {table:{body:[[{text:'Name',rowSpan:2,style:'label'},'A'],[{},'B']]}}
+ ]
+};
 const document: PdfDocument = engine.createPdf(definition);
-pdf.createPdf(definition); document.getBuffer();
+pdf.createPdf(definition); document.getBuffer(); document.print(window);
 `
 		);
 		for (const [module, moduleResolution] of [

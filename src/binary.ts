@@ -1,6 +1,9 @@
+export const zeros = (length = 0): Uint8Array => new Uint8Array(length);
+export const dataView = (bytes: Uint8Array): DataView =>
+	new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
 export const encode = (text: string) => new TextEncoder().encode(text);
 export function concat(parts: Uint8Array[]): Uint8Array {
-	const output = new Uint8Array(parts.reduce((size, part) => size + part.length, 0));
+	const output = zeros(parts.reduce((size, part) => size + part.length, 0));
 	let offset = 0;
 	for (const part of parts) {
 		output.set(part, offset);
@@ -17,17 +20,18 @@ export function toBase64(bytes: Uint8Array): string {
 		text += String.fromCharCode(...bytes.subarray(offset, offset + 32768));
 	return btoa(text);
 }
-export async function deflate(bytes: Uint8Array): Promise<Uint8Array> {
-	const stream = new Blob([new Uint8Array(bytes)])
-		.stream()
-		.pipeThrough(new CompressionStream('deflate'));
-	return new Uint8Array(await new Response(stream).arrayBuffer());
+async function transform(
+	bytes: Uint8Array,
+	stream: CompressionStream | DecompressionStream
+): Promise<Uint8Array> {
+	const output = new Blob([new Uint8Array(bytes)]).stream().pipeThrough(stream);
+	return new Uint8Array(await new Response(output).arrayBuffer());
 }
-export async function inflate(bytes: Uint8Array): Promise<Uint8Array> {
-	const stream = new Blob([new Uint8Array(bytes)])
-		.stream()
-		.pipeThrough(new DecompressionStream('deflate'));
-	return new Uint8Array(await new Response(stream).arrayBuffer());
+function deflate(bytes: Uint8Array): Promise<Uint8Array> {
+	return transform(bytes, new CompressionStream('deflate'));
+}
+export function inflate(bytes: Uint8Array): Promise<Uint8Array> {
+	return transform(bytes, new DecompressionStream('deflate'));
 }
 export const number = (value: number) => {
 	if (!Number.isFinite(value)) throw new Error('PDF coordinates must be finite');
@@ -41,12 +45,12 @@ export function unicode(value: string): string {
 }
 
 export class PdfWriter {
-	private objects: Uint8Array[] = [];
+	#objects: Uint8Array[] = [];
 	reserve(): number {
-		return this.objects.push(new Uint8Array());
+		return this.#objects.push(zeros());
 	}
 	set(id: number, value: string | Uint8Array): void {
-		this.objects[id - 1] = typeof value === 'string' ? encode(value) : value;
+		this.#objects[id - 1] = typeof value === 'string' ? encode(value) : value;
 	}
 	add(value: string | Uint8Array): number {
 		const id = this.reserve();
@@ -72,7 +76,7 @@ export class PdfWriter {
 		];
 		let offset = parts.reduce((sum, bytes) => sum + bytes.length, 0);
 		const offsets = [0];
-		for (const [index, bytes] of this.objects.entries()) {
+		for (const [index, bytes] of this.#objects.entries()) {
 			if (!bytes.length) throw new Error(`Unresolved PDF object ${index + 1}`);
 			offsets.push(offset);
 			const object = concat([encode(`${index + 1} 0 obj\n`), bytes, encode('\nendobj\n')]);

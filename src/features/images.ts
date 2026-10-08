@@ -1,3 +1,4 @@
+import { cached } from '../cache.js';
 import { number as n } from '../binary.js';
 import { parseImage, embedImage } from '../image.js';
 import { box } from '../layout-helpers.js';
@@ -9,10 +10,7 @@ export function images(): ImageFeature {
 		create() {
 			const parsed = new Map<string, ReturnType<typeof parseImage>>();
 			const ids = new Map<string, { name: string; id: number }>();
-			const image = (source: string) => {
-				if (!parsed.has(source)) parsed.set(source, parseImage(source));
-				return parsed.get(source)!;
-			};
+			const image = (source: string) => cached(parsed, source, () => parseImage(source));
 			return {
 				intrinsic: (value) => value.fit?.[0] ?? image(value.image).width,
 				layout(value, width, style) {
