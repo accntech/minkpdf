@@ -70,7 +70,7 @@ export async function render(
 		resources = writer.reserve();
 	const fontUses = new Map<
 		PdfFont,
-		{ name: string; characters: Map<number, string>; id: number }
+		{ name: string; characters: Map<number, string>; id: number; glyphMap?: Map<number, number> }
 	>();
 	const opacityIds = new Map<number, { name: string; id: number }>();
 	const opacity = (value: number) => {
@@ -90,13 +90,37 @@ export async function render(
 			});
 		return fontUses.get(value)!;
 	};
+	const watermark = document.watermark
+		? typeof document.watermark === 'string'
+			? { text: document.watermark }
+			: document.watermark
+		: undefined;
+	const watermarkStyle: Style = {
+		...document.defaultStyle,
+		fontSize: watermark?.fontSize ?? 60,
+		bold: watermark?.bold,
+		color: watermark?.color ?? '#000000'
+	};
+	const watermarkFont = watermark ? font(watermarkStyle) : undefined;
+	const collectText = (face: PdfFont, text: string) => {
+		const use = fontUse(face);
+		for (const char of text) use.characters.set(face.glyph(char.codePointAt(0)!), char);
+	};
+	// Finalize each subset before encoding text so page streams can use its glyph IDs directly.
+	for (const page of pages) {
+		if (watermark) collectText(watermarkFont!, watermark.text);
+		for (const draw of page) if (draw.kind === 'text') collectText(draw.font, draw.text);
+	}
+	for (const [face, use] of fontUses)
+		use.glyphMap = (await face.emit(writer, use.id, use.characters)) || undefined;
 	const textCommand = (draw: Extract<Draw, { kind: 'text' }>) => {
 		const use = fontUse(draw.font);
 		let text = '';
 		for (const char of draw.text) {
 			const glyph = draw.font.glyph(char.codePointAt(0)!);
-			use.characters.set(glyph, char);
-			text += glyph.toString(16).padStart(draw.font.glyphBytes * 2, '0');
+			text += (use.glyphMap?.get(glyph) ?? glyph)
+				.toString(16)
+				.padStart(draw.font.glyphBytes * 2, '0');
 		}
 		const command = `q ${color(draw.style.color)} rg BT /${use.name} ${n(draw.style.fontSize ?? 12)} Tf ${n(draw.style.characterSpacing ?? 0)} Tc 1 0 0 1 ${n(draw.x)} ${n(height - draw.y)} Tm <${text}> Tj ET Q\n`;
 		if (!draw.style.decoration) return command;
@@ -117,16 +141,9 @@ export async function render(
 	const pageIds: number[] = [];
 	for (const page of pages) {
 		let commands = '';
-		if (document.watermark) {
-			const watermark =
-				typeof document.watermark === 'string' ? { text: document.watermark } : document.watermark;
-			const style: Style = {
-				...document.defaultStyle,
-				fontSize: watermark.fontSize ?? 60,
-				bold: watermark.bold,
-				color: watermark.color ?? '#000000'
-			};
-			const face = font(style),
+		if (watermark) {
+			const style = watermarkStyle,
+				face = watermarkFont!,
 				textWidth = [...watermark.text].reduce(
 					(sum, char) =>
 						sum + (face.width(face.glyph(char.codePointAt(0)!)) * style.fontSize!) / 1000,
@@ -162,7 +179,6 @@ export async function render(
 			`<< /Type /Page /Parent ${pageTree} 0 R /MediaBox [0 0 ${n(width)} ${n(height)}] /Contents ${stream} 0 R /Resources ${resources} 0 R >>`
 		);
 	}
-	for (const [face, use] of fontUses) await face.emit(writer, use.id, use.characters);
 	writer.set(
 		resources,
 		`<< /Font << ${[...fontUses.values()].map((use) => `/${use.name} ${use.id} 0 R`).join(' ')} >> /XObject << ${images?.resources() ?? ''} >> /ExtGState << ${[...opacityIds.values()].map((state) => `/${state.name} ${state.id} 0 R`).join(' ')} >> >>`

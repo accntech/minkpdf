@@ -8,5 +8,10 @@ export interface PdfFont {
 	descender: number;
 	bbox: number[];
 	glyphBytes: 1 | 2;
-	emit(writer: PdfWriter, id: number, characters: Map<number, string>): void | Promise<void>;
+	/** Returns original glyph IDs mapped to the character codes in the embedded subset. */
+	emit(
+		writer: PdfWriter,
+		id: number,
+		characters: Map<number, string>
+	): void | Map<number, number> | Promise<void | Map<number, number>>;
 }

@@ -148,7 +148,8 @@ function trueType(bytes: Uint8Array, name: string): PdfFont {
 			}
 			offsets.setUint32(selected.length * 4, offset);
 			const fontTables = new Map<string, Uint8Array>();
-			for (const tag of ['OS/2', 'head', 'hhea', 'maxp', 'cvt ', 'fpgm', 'prep', 'gasp']) {
+			// CIDFontType2 uses PDF character mappings, not standalone font metadata.
+			for (const tag of ['head', 'hhea', 'maxp', 'cvt ', 'fpgm', 'prep']) {
 				const entry = tables.get(tag);
 				if (entry) fontTables.set(tag, bytes.slice(entry.offset, entry.offset + entry.length));
 			}
@@ -157,54 +158,6 @@ function trueType(bytes: Uint8Array, name: string): PdfFont {
 			fontTables.set('hmtx', horizontalMetrics);
 			new DataView(fontTables.get('hhea')!.buffer).setUint16(34, selected.length);
 			new DataView(fontTables.get('maxp')!.buffer).setUint16(4, selected.length);
-			// PDF text uses the external ToUnicode map; the embedded cmap needs only
-			// the glyphs actually drawn, not the original font's entire repertoire.
-			const mappings = [...characters].sort(
-				([, a], [, b]) => a.codePointAt(0)! - b.codePointAt(0)!
-			);
-			const cmapBytes = new Uint8Array(28 + mappings.length * 12),
-				cmapView = new DataView(cmapBytes.buffer);
-			cmapView.setUint16(2, 1);
-			cmapView.setUint16(4, 3);
-			cmapView.setUint16(6, 10);
-			cmapView.setUint32(8, 12);
-			cmapView.setUint16(12, 12);
-			cmapView.setUint32(16, cmapBytes.length - 12);
-			cmapView.setUint32(24, mappings.length);
-			for (const [index, [glyph, char]] of mappings.entries()) {
-				const offset = 28 + index * 12;
-				cmapView.setUint32(offset, char.codePointAt(0)!);
-				cmapView.setUint32(offset + 4, char.codePointAt(0)!);
-				cmapView.setUint32(offset + 8, glyphMap.get(glyph)!);
-			}
-			fontTables.set('cmap', cmapBytes);
-			const post = new Uint8Array(32);
-			new DataView(post.buffer).setUint32(0, 0x00030000);
-			fontTables.set('post', post);
-			const names = [name, 'Regular', name.replace(/[^a-z\d-]/gi, '')].map((value) =>
-				Uint8Array.from(
-					unicode(value)
-						.match(/../g)!
-						.map((byte) => parseInt(byte, 16))
-				)
-			);
-			const nameBytes = new Uint8Array(42 + names.reduce((sum, data) => sum + data.length, 0)),
-				nameView = new DataView(nameBytes.buffer);
-			nameView.setUint16(2, 3);
-			nameView.setUint16(4, 42);
-			let nameOffset = 0;
-			for (const [index, data] of names.entries()) {
-				const offset = 6 + index * 12;
-				nameView.setUint16(offset, 3);
-				nameView.setUint16(offset + 2, 1);
-				nameView.setUint16(offset + 4, 0x0409);
-				nameView.setUint16(offset + 6, [1, 2, 6][index]);
-				nameView.setUint16(offset + 8, data.length);
-				nameView.setUint16(offset + 10, nameOffset);
-				nameBytes.set(data, 42 + nameOffset);
-				nameOffset += data.length;
-			}
-			fontTables.set('name', nameBytes);
 			const headBytes = fontTables.get('head')!,
 				headView = new DataView(headBytes.buffer);
 			headView.setUint32(8, 0);
@@ -259,26 +212,34 @@ async function embedTrueType(
 	face: EmbeddedFont,
 	id: number,
 	characters: Map<number, string>
-): Promise<void> {
+): Promise<Map<number, number>> {
 	const name = `MINKPD+${face.name.replace(/[^a-z\d-]/gi, '')}`;
 	const subset = face.subset(characters);
 	const file = await writer.stream(subset.bytes, `/Length1 ${subset.bytes.length}`);
 	const descriptor = writer.add(
 		`<< /Type /FontDescriptor /FontName /${name} /Flags 32 /FontBBox [${face.bbox.map(n).join(' ')}] /ItalicAngle 0 /Ascent ${n(face.ascender)} /Descent ${n(face.descender)} /CapHeight ${n(face.ascender)} /StemV 80 /FontFile2 ${file} 0 R >>`
 	);
-	const entries = [...characters].sort(([a], [b]) => a - b);
-	const glyphBytes = new Uint8Array((entries.at(-1)![0] + 1) * 2),
-		glyphView = new DataView(glyphBytes.buffer);
-	for (const [glyph] of entries) glyphView.setUint16(glyph * 2, subset.glyphMap.get(glyph)!);
-	const glyphMapping = await writer.stream(glyphBytes);
+	const entries = [...characters]
+		.map(([glyph, char]) => [subset.glyphMap.get(glyph)!, glyph, char] as const)
+		.sort(([a], [b]) => a - b);
+	let widths = '';
+	for (let index = 0; index < entries.length;) {
+		const first = entries[index][0];
+		const values: string[] = [];
+		do {
+			values.push(n(face.width(entries[index][1])));
+			index++;
+		} while (index < entries.length && entries[index][0] === first + values.length);
+		widths += `${first} [${values.join(' ')}] `;
+	}
 	const descendant = writer.add(
-		`<< /Type /Font /Subtype /CIDFontType2 /BaseFont /${name} /CIDSystemInfo << /Registry (Adobe) /Ordering (Identity) /Supplement 0 >> /FontDescriptor ${descriptor} 0 R /CIDToGIDMap ${glyphMapping} 0 R /DW 1000 /W [${entries.map(([glyph]) => `${glyph} [${n(face.width(glyph))}]`).join(' ')}] >>`
+		`<< /Type /Font /Subtype /CIDFontType2 /BaseFont /${name} /CIDSystemInfo << /Registry (Adobe) /Ordering (Identity) /Supplement 0 >> /FontDescriptor ${descriptor} 0 R /CIDToGIDMap /Identity /DW 1000 /W [${widths.trimEnd()}] >>`
 	);
 	let cmap =
 		'/CIDInit /ProcSet findresource begin\n12 dict begin\nbegincmap\n/CIDSystemInfo << /Registry (Adobe) /Ordering (UCS) /Supplement 0 >> def\n/CMapName /MinkPDFUnicode def\n/CMapType 2 def\n1 begincodespacerange\n<0000> <FFFF>\nendcodespacerange\n';
 	for (let index = 0; index < entries.length; index += 100) {
 		const chunk = entries.slice(index, index + 100);
-		cmap += `${chunk.length} beginbfchar\n${chunk.map(([glyph, char]) => `<${glyph.toString(16).padStart(4, '0')}> <${unicode(char)}>`).join('\n')}\nendbfchar\n`;
+		cmap += `${chunk.length} beginbfchar\n${chunk.map(([glyph, , char]) => `<${glyph.toString(16).padStart(4, '0')}> <${unicode(char)}>`).join('\n')}\nendbfchar\n`;
 	}
 	cmap += 'endcmap\nCMapName currentdict /CMap defineresource pop\nend\nend';
 	const mapping = await writer.stream(encode(cmap));
@@ -286,4 +247,5 @@ async function embedTrueType(
 		id,
 		`<< /Type /Font /Subtype /Type0 /BaseFont /${name} /Encoding /Identity-H /DescendantFonts [${descendant} 0 R] /ToUnicode ${mapping} 0 R >>`
 	);
+	return subset.glyphMap;
 }

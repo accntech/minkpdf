@@ -221,12 +221,12 @@ Measured on **2026-10-08**, using Bun **1.4.0** on an **Apple M4 Pro**, macOS **
 
 | Document | MinkPDF median (ms) | pdfmake 0.3.11 median (ms) | PDF bytes: MinkPDF / pdfmake | Pages: MinkPDF / pdfmake |
 | --- | ---: | ---: | ---: | ---: |
-| Short document | 0.282 | 10.653 | 8,698 / 8,160 | 1 / 1 |
-| 100-row report | 2.492 | 28.267 | 22,812 / 27,816 | 4 / 4 |
-| 1,000-row report | 20.358 | 140.305 | 78,232 / 145,570 | 33 / 34 |
-| Nested voucher | 0.584 | 14.258 | 14,079 / 13,579 | 1 / 1 |
+| Short document | 0.205 | 11.935 | 7,488 / 8,160 | 1 / 1 |
+| 100-row report | 2.492 | 29.64 | 20,222 / 27,816 | 4 / 4 |
+| 1,000-row report | 20.174 | 140.317 | 74,487 / 145,570 | 33 / 34 |
+| Nested voucher | 0.545 | 14.76 | 12,150 / 13,579 | 1 / 1 |
 
-Minified browser engine sizes, excluding fonts, were **24,380 bytes** for MinkPDF and **1,053,972 bytes** for pdfmake; gzip sizes were **10,101** and **356,393 bytes** respectively. [Full results](./docs/benchmarks/2026-10-08.json) include first-render and p95 timings, sizes, page counts, and module-import time.
+Minified browser engine sizes, excluding fonts, were **24,884 bytes** for MinkPDF and **1,053,972 bytes** for pdfmake; gzip sizes were **10,362** and **356,393 bytes** respectively. [Full results](./docs/benchmarks/2026-10-08.json) include first-render and p95 timings, sizes, page counts, and module-import time.
 
 This is one local measurement, not a performance guarantee. The engines support different feature sets, and layout and compression can differ: the 1,000-row report above has different page counts. Poppler validates representative text in both engines' PDFs; that check does not establish visual equivalence.
 
