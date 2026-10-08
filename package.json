@@ -1,0 +1,16 @@
+{
+	"name": "minkpdf",
+	"version": "0.1.0",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"build": "bun build src/index.ts --target browser --minify --outdir dist",
+		"test": "bun test",
+		"benchmark": "bun benchmarks/pdfmake.ts"
+	},
+	"exports": {
+		".": "./src/index.ts",
+		"./interfaces": "./src/interfaces.ts"
+	},
+	"packageManager": "bun@1.4.2"
+}
