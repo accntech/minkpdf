@@ -1,14 +1,21 @@
-name: Publish to npm
+name: Stage npm release
 
 on:
   release:
     types: [published]
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Existing release tag to stage on npm
+        required: true
+        type: string
+        default: v0.1.0
 
 permissions:
   contents: read
 
 concurrency:
-  group: npm-publish-${{ github.event.release.tag_name }}
+  group: npm-publish-${{ github.event.release.tag_name || inputs.release_tag }}
   cancel-in-progress: false
 
 jobs:
@@ -20,7 +27,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
-          ref: ${{ github.event.release.tag_name }}
+          ref: ${{ github.event.release.tag_name || inputs.release_tag }}
           persist-credentials: false
 
       - uses: actions/setup-node@v7
@@ -29,11 +36,14 @@ jobs:
           registry-url: https://registry.npmjs.org/
           package-manager-cache: false
 
+      - name: Install npm with staging support
+        run: npm install --global npm@11.15.0
+
       - uses: oven-sh/setup-bun@v2
 
       - name: Set package version from release tag
         env:
-          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          RELEASE_TAG: ${{ github.event.release.tag_name || inputs.release_tag }}
         run: |
           node --input-type=module <<'NODE'
           import { execFileSync } from 'node:child_process';
@@ -52,7 +62,7 @@ jobs:
       - name: Run tests
         run: bun test
 
-      - name: Publish package
+      - name: Stage package for approval
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           RELEASE_PRERELEASE: ${{ github.event.release.prerelease }}
@@ -62,4 +72,12 @@ jobs:
           if [[ "$RELEASE_PRERELEASE" == "true" || "$version" == *-* ]]; then
             tag=next
           fi
-          npm publish --provenance --access public --tag "$tag"
+          npm stage publish --provenance --access public --tag "$tag"
+
+      - name: Add approval instructions
+        run: |
+          cat >> "$GITHUB_STEP_SUMMARY" <<'MARKDOWN'
+          The npm release is staged and awaiting your approval.
+
+          Open **Staged Packages** in your npm account, review `minkpdf`, and click **Approve** to publish it with 2FA.
+          MARKDOWN
