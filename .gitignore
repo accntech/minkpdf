@@ -3,3 +3,12 @@ dist/
 .turbo/
 .DS_Store
 .site/
+AGENTS.md
+DESIGN.md
+design.md
+PRODUCTS.md
+products.md
+.impeccable/
+.fallow/
+fallow-*
+docs/plans/
