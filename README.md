@@ -6,6 +6,8 @@
 [![npm downloads](https://img.shields.io/npm/dt/minkpdf?color=brightgreen)](https://www.npmjs.com/package/minkpdf)
 [![GitHub stars](https://img.shields.io/github/stars/accntech/minkpdf?style=social&label=Stars)](https://github.com/accntech/minkpdf/stargazers)
 
+[Documentation](https://accntech.github.io/minkpdf/)
+
 MinkPDF generates PDFs from TypeScript document definitions in browsers, Node.js, and Bun. It supports text, tables, headers, footers, and embedded TrueType fonts, with **no runtime package dependencies**.
 
 The engine implements layout, pagination, font parsing and subsetting, image embedding, compression, and PDF serialization. Its document definition follows a supported subset of pdfmake's API; see [compatibility and limitations](#compatibility-and-limitations) before migrating.

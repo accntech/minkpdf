@@ -17,7 +17,7 @@
 		"type": "git",
 		"url": "git+https://github.com/accntech/minkpdf.git"
 	},
-	"homepage": "https://github.com/accntech/minkpdf#readme",
+	"homepage": "https://accntech.github.io/minkpdf/",
 	"bugs": "https://github.com/accntech/minkpdf/issues",
 	"publishConfig": {
 		"access": "public",
