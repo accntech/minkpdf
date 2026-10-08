@@ -2,6 +2,7 @@
 	"name": "minkpdf",
 	"version": "0.1.0",
 	"description": "A standalone TypeScript PDF engine with zero package dependencies",
+	"license": "MIT",
 	"type": "module",
 	"main": "./dist/index.js",
 	"types": "./src/index.ts",
