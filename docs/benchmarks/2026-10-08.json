@@ -1,0 +1,100 @@
+{
+  "environment": {
+    "bun": "1.4.0",
+    "platform": "darwin",
+    "architecture": "arm64",
+    "runs": 20,
+    "warmups": 3,
+    "date": "2026-10-08",
+    "cpu": "Apple M4 Pro",
+    "os": "macOS 27.2"
+  },
+  "engines": [
+    {
+      "name": "minkpdf",
+      "bytes": 24380,
+      "gzipBytes": 10101,
+      "importMs": 1.207
+    },
+    {
+      "name": "pdfmake 0.3.11",
+      "bytes": 1053972,
+      "gzipBytes": 356393,
+      "importMs": 39.851
+    }
+  ],
+  "results": [
+    {
+      "scenario": "short document",
+      "engine": "minkpdf",
+      "firstMs": 12.32,
+      "medianMs": 0.282,
+      "p95Ms": 0.875,
+      "pdfBytes": 8698,
+      "pages": 1
+    },
+    {
+      "scenario": "short document",
+      "engine": "pdfmake 0.3.11",
+      "firstMs": 28.135,
+      "medianMs": 10.653,
+      "p95Ms": 13.408,
+      "pdfBytes": 8160,
+      "pages": 1
+    },
+    {
+      "scenario": "100-row report",
+      "engine": "minkpdf",
+      "firstMs": 13.759,
+      "medianMs": 2.492,
+      "p95Ms": 3.384,
+      "pdfBytes": 22812,
+      "pages": 4
+    },
+    {
+      "scenario": "100-row report",
+      "engine": "pdfmake 0.3.11",
+      "firstMs": 38.729,
+      "medianMs": 28.267,
+      "p95Ms": 30.251,
+      "pdfBytes": 27816,
+      "pages": 4
+    },
+    {
+      "scenario": "1,000-row report",
+      "engine": "minkpdf",
+      "firstMs": 29.053,
+      "medianMs": 20.358,
+      "p95Ms": 21.731,
+      "pdfBytes": 78232,
+      "pages": 33
+    },
+    {
+      "scenario": "1,000-row report",
+      "engine": "pdfmake 0.3.11",
+      "firstMs": 145.661,
+      "medianMs": 140.305,
+      "p95Ms": 144.561,
+      "pdfBytes": 145570,
+      "pages": 34
+    },
+    {
+      "scenario": "nested voucher",
+      "engine": "minkpdf",
+      "firstMs": 11.823,
+      "medianMs": 0.584,
+      "p95Ms": 0.667,
+      "pdfBytes": 14079,
+      "pages": 1
+    },
+    {
+      "scenario": "nested voucher",
+      "engine": "pdfmake 0.3.11",
+      "firstMs": 16.265,
+      "medianMs": 14.258,
+      "p95Ms": 17.122,
+      "pdfBytes": 13579,
+      "pages": 1
+    }
+  ]
+}
