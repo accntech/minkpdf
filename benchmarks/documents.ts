@@ -158,5 +158,102 @@ export const scenarios = [
 		name: 'nested voucher',
 		document: voucher,
 		expected: ['Allocation 20', 'JOSÉ GARCÍA', 'MARÍA SANTOS']
+	},
+	{
+		name: 'invoice overlay',
+		document: {
+			defaultStyle: { font: 'Inter', fontSize: 9 },
+			pageSize: { width: 420, height: 595 },
+			pageMargins: 0,
+			content: [
+				{ text: 'INV-000123', absolutePosition: { x: 300, y: 30 } },
+				{
+					columns: [{ width: 240, text: 'José García', noWrap: true }],
+					absolutePosition: { x: 40, y: 75 }
+				},
+				...Array.from({ length: 10 }, (_, index) => ({
+					columns: [
+						{ width: 230, text: `Service ${index + 1}` },
+						{ width: 100, text: '₱1,234.50', alignment: 'right' as const }
+					],
+					absolutePosition: { x: 40, y: 130 + index * 18 }
+				})),
+				{
+					columns: [{ width: 330, text: 'TOTAL ₱12,345.00', alignment: 'right' }],
+					absolutePosition: { x: 40, y: 360 },
+					bold: true
+				}
+			]
+		} satisfies TDocumentDefinitions,
+		expected: ['INV-000123', 'José García', 'Service 10', 'TOTAL ₱12,345.00']
+	},
+	{
+		name: 'ERP registration form',
+		document: {
+			...base,
+			styles: {
+				title: { bold: true, fontSize: 14, marginTop: 12, marginBottom: 12 },
+				label: { bold: true, fillColor: 'lightgray', margin: [3, 2] },
+				value: { marginLeft: 3, marginTop: 2, marginBottom: 2 }
+			},
+			watermark: {
+				text: 'CANCELLED',
+				color: 'red',
+				opacity: 0.15,
+				bold: true,
+				italics: false,
+				fontSize: 70
+			},
+			content: [
+				header,
+				{ text: 'REGISTRATION FORM', style: 'title' },
+				{ text: 'REG-000123', relativePosition: { x: 350, y: -20 } },
+				{
+					table: {
+						widths: [85, '*', '*'],
+						body: [
+							[
+								{ text: 'Name', rowSpan: 2, style: 'label' },
+								{ text: 'GARCÍA', style: 'value' },
+								{ text: 'JOSÉ', style: 'value' }
+							],
+							[{}, 'Last name', 'First name'],
+							[
+								{ text: 'Address', rowSpan: 2, style: 'label' },
+								{ text: 'Makati City', colSpan: 2, style: 'value' },
+								{}
+							],
+							[{}, { text: 'Metro Manila', colSpan: 2 }, {}]
+						]
+					},
+					marginBottom: 16
+				},
+				{
+					table: {
+						widths: [85, '*', 75],
+						headerRows: 1,
+						body: [
+							['CODE', 'DESCRIPTION', 'UNITS'].map((text) => ({ text, style: 'label' })),
+							...Array.from({ length: 15 }, (_, index) => [
+								`SUB-${index + 1}`,
+								`Subject ${index + 1}`,
+								'3'
+							]),
+							[{ text: 'TOTAL UNITS', colSpan: 2, bold: true }, {}, '45']
+						]
+					}
+				},
+				{ text: 'Prepared by: MARÍA SANTOS', marginTop: 20, color: 'gray' }
+			]
+		} satisfies TDocumentDefinitions,
+		expected: [
+			'REGISTRATION FORM',
+			'REG-000123',
+			'GARCÍA',
+			'Makati City',
+			'Subject 15',
+			'TOTAL UNITS',
+			'MARÍA SANTOS'
+		]
 	}
 ];

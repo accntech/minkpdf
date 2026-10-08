@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { createRequire } from 'node:module';
 import { gzipSync } from 'node:zlib';
+import { cpus, release } from 'node:os';
 import { scenarios } from './documents';
 import type { TDocumentDefinitions, TFontDictionary } from '../src/interfaces';
 
@@ -152,6 +153,9 @@ try {
 			bun: Bun.version,
 			platform: process.platform,
 			architecture: process.arch,
+			date: new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' }),
+			cpu: cpus()[0]?.model,
+			os: `${process.platform} ${release()}`,
 			runs,
 			warmups: 3
 		},

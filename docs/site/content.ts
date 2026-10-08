@@ -90,6 +90,11 @@ const outputs = table(
 			'<code>getDataUrl()</code>',
 			'<code>Promise&lt;string&gt;</code>',
 			'<code>data:application/pdf;base64,…</code>'
+		],
+		[
+			'<code>print(target?)</code>',
+			'<code>Promise&lt;void&gt;</code>',
+			'Browser PDF viewer with a print OpenAction; optional preopened Window'
 		]
 	]
 );
@@ -119,7 +124,7 @@ ${note('A focused API', 'MinkPDF supports a subset of pdfmake, with different la
 ${heading('under-the-hood', 'From content to PDF bytes')}
 <div class="pipeline"><div><b>Define</b><span>Content + styles</span></div><span aria-hidden="true">→</span><div><b>Lay out</b><span>Measure + paginate</span></div><span aria-hidden="true">→</span><div><b>Serialize</b><span>Fonts + streams</span></div></div>
 <p>The engine measures text, arranges content, and paginates it. It embeds and subsets registered TrueType fonts, embeds PNG/JPEG images, compresses streams with native Web APIs, and writes the PDF structure itself.</p>
-<p>Rendering is lazy. Calling <code>createPdf()</code> prepares a document; the first output request renders it, and subsequent output requests reuse the resulting bytes.</p>
+<p>Rendering is lazy. Calling <code>createPdf()</code> prepares a document; the byte/Blob methods share one cached render. Browser printing separately caches a printable render.</p>
 ${heading('find-your-way', 'Find your way')}
 <div class="link-grid"><a href="getting-started.html"><span>Start building</span><strong>Getting started <i aria-hidden="true">→</i></strong><p>Generate and save a receipt in a few lines.</p></a><a href="installation.html"><span>Set up your environment</span><strong>Installation <i aria-hidden="true">→</i></strong><p>ES modules, runtime requirements, and optional imports.</p></a><a href="comparison.html"><span>Coming from pdfmake?</span><strong>API comparison <i aria-hidden="true">→</i></strong><p>Keep familiar definitions and adapt output handling.</p></a><a href="benchmarks.html"><span>Explore the measurements</span><strong>Benchmarks <i aria-hidden="true">→</i></strong><p>Render timings, bundle sizes, and reproducible results.</p></a></div>`
 	},
@@ -183,11 +188,14 @@ ${table(
 	['Runtime', 'Verified in this repository'],
 	[
 		['Bun 1.4.0', 'Full-engine tests and README file-generation examples'],
-		['Bun 1.4.2', 'Optional-feature, packed-package, and consumer tree-shaking checks'],
+		[
+			'Bun 1.4.2',
+			'Full suite including feature regressions, packed-package, and consumer tree-shaking checks'
+		],
 		['Node.js 24.12.0', 'README file-generation examples using the built ES modules'],
 		[
-			'Browsers',
-			'ES module support and the native APIs above are required; engine tests do not establish browser coverage'
+			'Chromium',
+			'Manual browser verification: printable-PDF navigation and closed-target URL cleanup; lifecycle unit tests cover printing'
 		]
 	]
 )}
@@ -248,6 +256,7 @@ ${code('# macOS\nbrew install poppler\n# Debian / Ubuntu\nsudo apt-get install p
 			['engine', 'createPdfEngine'],
 			['definition', 'Document definition'],
 			['styles', 'Text & styles'],
+			['positioning', 'Positioned content'],
 			['containers', 'Stacks & columns'],
 			['tables', 'Tables'],
 			['resources', 'Fonts & resources'],
@@ -265,7 +274,13 @@ const document = createPdf({ content: 'Hello' });
 const bytes = await document.getBuffer();`)}
 <p>The root default object and named exports share one full-feature engine. <code>createPdf()</code> accepts one document definition and returns a <code>PdfDocument</code>. Rendering begins on the first output request; later requests reuse the same rendered PDF.</p>
 ${heading('output', 'Output methods')}${outputs}
-<p>All four output methods are asynchronous and take no arguments. Rendering errors reject their promises. File writing, downloading, opening a window, and printing are application responsibilities.</p>
+<p>The four byte/Blob output methods take no arguments and share one cached render. <code>print(target?: Window | null)</code> is browser-only and separately caches a printable render. Rendering errors reject their promises. File writing and downloading remain application responsibilities.</p>
+${code(`button.addEventListener('click', async () => {
+  const target = window.open('', '_blank');
+  if (!target) throw new Error('Print window blocked');
+  await pdf.createPdf(definition).print(target);
+});`)}
+<p>Call <code>print()</code> directly from a user gesture, or pass a window opened during that gesture before fetching report data. With no target, MinkPDF opens a window synchronously before rendering. The promise resolves after navigation to the printable PDF, not after the user prints. Automatic printing depends on the PDF viewer honoring the print OpenAction. Object URLs are released on an <code>afterprint</code> event or when the target closes. A blocked popup or closed target rejects; a window created by MinkPDF closes on failure. Ordinary output methods never include a print action.</p>
 ${heading('engine', 'createPdfEngine(options)')}
 ${code(`import { createPdfEngine } from 'minkpdf/core';
 import { tables } from 'minkpdf/tables';
@@ -303,7 +318,7 @@ ${table(
 		],
 		[
 			'<code>watermark</code>',
-			'String or <code>{ text, color?, opacity?, bold?, fontSize?, angle? }</code>'
+			'String or <code>{ text, color?, opacity?, bold?, italics?, fontSize?, angle? }</code>'
 		]
 	]
 )}
@@ -330,17 +345,33 @@ ${table(
 		['<code>bold</code>, <code>italics</code>', 'Booleans selecting font variants'],
 		[
 			'<code>color</code>, <code>fillColor</code>',
-			'Three- or six-digit hex colors, e.g. <code>#eee</code> or <code>#334155</code>'
+			'Three- or six-digit hex colors and case-insensitive CSS named colors, e.g. <code>#eee</code>, <code>red</code>, or <code>lightgray</code>'
 		],
 		['<code>alignment</code>', "<code>'left' | 'center' | 'right'</code>"],
 		['<code>lineHeight</code>', 'Numeric line-height multiplier'],
 		['<code>characterSpacing</code>', 'Additional spacing in points'],
 		['<code>noWrap</code>', 'Boolean preventing text wrapping'],
 		['<code>margin</code>', '<code>Margins</code>'],
+		[
+			'<code>marginLeft</code>, <code>marginTop</code>, <code>marginRight</code>, <code>marginBottom</code>',
+			'Per-side margins in points; negative values are supported'
+		],
 		['<code>decoration</code>', "<code>'underline' | 'lineThrough' | 'overline'</code>"],
 		['<code>fillOpacity</code>', 'Numeric opacity for fills']
 	]
 )}
+<p>Named styles resolve in array order; node properties override them. Margins and cell fills from named styles apply to the styled node without leaking into children. Per-side margins override the corresponding named-style sides. An explicit node <code>margin</code> takes precedence over its per-side properties.</p>
+${heading('positioning', 'Positioned content')}
+${code(`const definition = {
+  pageMargins: 0,
+  content: [
+    { text: 'INV-001', absolutePosition: { x: 300, y: 30 } },
+    { text: 'Customer', absolutePosition: { x: 40, y: 90 } },
+    { text: 'Offset label', relativePosition: { x: 20, y: -10 } },
+    'Normal flow continues at the original cursor'
+  ]
+};`)}
+<p><code>absolutePosition: { x, y }</code> anchors content to the top-left of the current page, independent of page margins and enclosing columns or cells. Text wraps within the remaining page width; explicit column widths and <code>noWrap</code> remain available for preprinted forms. <code>relativePosition: { x, y }</code> offsets the current flow cursor. Both use points, ignore their own margins, and leave the flow cursor unchanged. Positioned content stays on the current page; it is not automatically paginated and should fit inside that page.</p>
 ${heading('containers', 'Stacks and columns')}
 <p>An array of content acts as a vertical stack. Use <code>stack</code> for an explicitly styled container or <code>columns</code> for side-by-side content, with optional <code>columnGap</code> and per-column <code>width</code>.</p>
 ${code(`const definition = {
@@ -388,7 +419,17 @@ ${table(
 		['<code>heights</code>', 'Number, number array, or <code>(row) =&gt; number</code>']
 	]
 )}
-<p>Cells support nested content, <code>fillColor</code>, <code>fillOpacity</code>, <code>border: [left, top, right, bottom]</code>, and <code>colSpan</code>. Supply empty placeholder cells for the remaining columns of a span. Row spans are unsupported.</p>
+<p>Cells support nested content, <code>fillColor</code>, <code>fillOpacity</code>, <code>border: [left, top, right, bottom]</code>, <code>colSpan</code>, and <code>rowSpan</code>. Supply empty placeholder cells for every covered position, including later rows. Row and column spans can be combined. Merged fills and borders cover the full cell, and its content is drawn once. Connected row spans stay together when they fit; oversized groups split with their borders and fills. Spans must stay within the table and cannot cross the repeated-header boundary.</p>
+${code(`const definition = {
+  content: { table: {
+    widths: [80, '*', '*'],
+    body: [
+      [{ text: 'Name', rowSpan: 2 }, 'GARCÍA', 'JOSÉ'],
+      [{}, 'Last name', 'First name'],
+      [{ text: 'Address', colSpan: 3 }, {}, {}]
+    ]
+  } }
+};`)}
 <p>A table node’s <code>layout</code> can be a named layout or a <code>CustomTableLayout</code>. Register named layouts with <code>addTableLayouts(dictionary)</code>. The built-in <code>noBorders</code> layout removes borders; other named layouts must be registered explicitly.</p>
 ${code(`pdf.addTableLayouts({
   compact: {
@@ -400,7 +441,7 @@ ${code(`pdf.addTableLayouts({
   }
 });
 // Use layout: 'compact' alongside table: { body: ... }.`)}
-<p>Custom layouts also accept <code>vLineColor</code>, <code>paddingLeft</code>, <code>paddingRight</code>, <code>fillColor(row, node, column)</code> returning a hex color or <code>null</code>, and <code>defaultBorder</code>. Other line/padding callbacks receive <code>(index, node)</code>.</p>
+<p>Custom layouts also accept <code>vLineColor</code>, <code>paddingLeft</code>, <code>paddingRight</code>, <code>fillColor(row, node, column)</code> returning a supported color or <code>null</code>, and <code>defaultBorder</code>. Other line/padding callbacks receive <code>(index, node)</code>.</p>
 ${heading('resources', 'Fonts and resources')}
 ${table(
 	['Engine member', 'Signature and behavior'],
@@ -458,7 +499,7 @@ ${code(`const definition = {
     { text: 'Details', pageBreak: 'before' }
   ]
 };`)}
-<p>Header/footer callbacks receive the final total page count and <code>size: { width, height, orientation }</code>. Reserve sufficient top and bottom margins for them. Canvas supports lines with optional width and hex color; arbitrary shapes are unsupported.</p>
+<p>Header/footer callbacks receive the final total page count and <code>size: { width, height, orientation }</code>. Reserve sufficient top and bottom margins for them. Canvas supports lines with optional width and supported colors; arbitrary shapes are unsupported.</p>
 ${heading('errors', 'Errors and supported limits')}
 ${code(`try {
   const bytes = await pdf.createPdf(definition).getBuffer();
@@ -467,7 +508,7 @@ ${code(`try {
   console.error('PDF generation failed:', error);
 }`)}
 <p>Missing capabilities, unregistered fonts or variants, invalid colors, and margins that leave no content area produce errors. Duplicate feature descriptors and resource registration on disabled capabilities throw synchronously; render failures reject output promises.</p>
-<p>SVG, QR codes, lists, row spans, attachments, encryption, PDF/A, and complex-script shaping are outside the supported API. Named CSS colors, <code>rgb()</code>, and eight-digit hex colors are unsupported. See the <a href="comparison.html#compatibility">pdfmake comparison</a> for migration limits and <a href="https://github.com/accntech/minkpdf/blob/main/src/interfaces.ts">public interface definitions</a> for the complete types.</p>`
+<p>SVG, QR codes, lists, attachments, encryption, PDF/A, and complex-script shaping are outside the supported API. CSS color functions such as <code>rgb()</code>, eight-digit hex colors, <code>transparent</code>, and <code>currentColor</code> are unsupported; use <code>fillOpacity</code> or watermark opacity for transparency. See the <a href="comparison.html#compatibility">pdfmake comparison</a> for migration limits and <a href="https://github.com/accntech/minkpdf/blob/main/src/interfaces.ts">public interface definitions</a> for the complete types.</p>`
 	},
 	{
 		slug: 'comparison',
@@ -525,7 +566,7 @@ ${table(
 		],
 		[
 			'Download / open / print',
-			'Use returned bytes or Blob in your own application',
+			'<code>print(target?)</code>; use returned bytes or Blob for download/open',
 			'Client methods <code>download()</code>, <code>open()</code>, and <code>print()</code>'
 		],
 		[
@@ -559,7 +600,7 @@ const bytes = await pdf
 // Embed a TrueType font for Unicode.`,
 			'JavaScript'
 		)}</div></div>
-<p>For downloads, replace <code>pdfMake.createPdf(definition).download('invoice.pdf')</code> with <code>getBlob()</code> and an object URL. The <a href="getting-started.html#browser-download">complete browser example</a> includes cleanup. MinkPDF has no <code>download()</code>, <code>open()</code>, <code>print()</code>, <code>write()</code>, or <code>getStream()</code> helpers.</p>
+<p>For downloads, replace <code>pdfMake.createPdf(definition).download('invoice.pdf')</code> with <code>getBlob()</code> and an object URL. The <a href="getting-started.html#browser-download">complete browser example</a> includes cleanup. Browser <code>print(target?)</code> supports the same preopened-window pattern as pdfmake 0.3. MinkPDF has no <code>download()</code>, <code>open()</code>, <code>write()</code>, or <code>getStream()</code> helpers.</p>
 ${heading('fonts-migration', 'Register files explicitly')}
 <p>For a matching font, supply the same TrueType bytes and variants to both engines. In MinkPDF, map virtual filenames to bytes or base64, then register the font dictionary and set <code>defaultStyle.font</code>.</p>
 ${code(`pdf.addVirtualFileSystem({ 'Inter-Regular.ttf': fontBytes });
@@ -578,8 +619,8 @@ ${table(
 			'<span class="status supported">Supported</span> · left, center, and right alignment'
 		],
 		[
-			'Tables, repeated headers, column spans, custom layouts',
-			'<span class="status supported">Supported</span> · row spans are excluded'
+			'Tables, repeated headers, row/column spans, custom layouts',
+			'<span class="status supported">Supported</span> · spans cannot cross the repeated-header boundary'
 		],
 		[
 			'Page breaks, headers/footers, metadata, watermarks',
@@ -593,7 +634,11 @@ ${table(
 			'PNG / JPEG base64 data URLs',
 			'<span class="status supported">Supported</span> · PNG limits are documented in the API'
 		],
-		['SVG, QR codes, lists, row spans', '<span class="status unsupported">Outside the API</span>'],
+		[
+			'Absolute/relative positioning, per-side margins, named colors',
+			'<span class="status supported">Supported</span> · positioned nodes do not advance flow'
+		],
+		['SVG, QR codes, lists', '<span class="status unsupported">Outside the API</span>'],
 		['Attachments, encryption, PDF/A', '<span class="status unsupported">Outside the API</span>'],
 		['Complex-script shaping', '<span class="status unsupported">Outside the API</span>'],
 		[

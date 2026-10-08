@@ -27,8 +27,8 @@ await Bun.write(
 	resolve(output, 'assets/search-index.json'),
 	JSON.stringify(buildSearchIndex(pages))
 );
-for (const file of ['2026-10-08.json', '2026-10-08-tree-shaking.json'])
-	await Bun.write(resolve(output, 'data', file), Bun.file(resolve(root, 'docs/benchmarks', file)));
+for (const file of ['2026-10-08-render-benchmarks.json', '2026-10-08-bundle-benchmarks.json'])
+	await Bun.write(resolve(output, 'data', file), Bun.file(resolve(root, 'docs/site/data', file)));
 for (const chart of charts)
 	await Bun.write(resolve(output, 'charts', `${chart.id}.svg`), svgChart(chart));
 await Bun.write(resolve(output, '.nojekyll'), '');

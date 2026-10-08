@@ -53,7 +53,7 @@ test('every local link and fragment resolves under a GitHub project subpath', as
 
 test('render charts preserve recorded values for every metric and both engines', async () => {
 	await build();
-	const report = await Bun.file(join(root, 'docs/benchmarks/2026-10-08.json')).json();
+	const report = await Bun.file(join(root, 'docs/site/data/2026-10-08-render-benchmarks.json')).json();
 	const html = await Bun.file(join(output, 'benchmarks.html')).text();
 	for (const metric of ['medianMs', 'p95Ms', 'firstMs', 'pdfBytes']) {
 		for (const row of report.results) {
@@ -64,13 +64,15 @@ test('render charts preserve recorded values for every metric and both engines',
 	}
 	expect(html.replace(/<[^>]*>/g, '')).toContain('33 / 34');
 	expect(html).toContain('not a performance guarantee');
-	const published = await Bun.file(join(output, 'data/2026-10-08.json')).json();
+	const published = await Bun.file(join(output, 'data/2026-10-08-render-benchmarks.json')).json();
 	expect(published).toEqual(report);
 });
 
-test('bundle charts keep the original comparison separate from the optional-feature measurement', async () => {
+test('bundle charts describe the current feature implementation and measured runtime', async () => {
 	await build();
-	const report = await Bun.file(join(root, 'docs/benchmarks/2026-10-08-tree-shaking.json')).json();
+	const report = await Bun.file(
+		join(root, 'docs/site/data/2026-10-08-bundle-benchmarks.json')
+	).json();
 	const html = await Bun.file(join(output, 'benchmarks.html')).text();
 	for (const [name, size] of Object.entries(report.sizes) as [
 		string,
@@ -79,8 +81,27 @@ test('bundle charts keep the original comparison separate from the optional-feat
 		for (const metric of ['raw', 'gzip'] as const)
 			expect(html).toContain(`data-key="${name}:${metric}" data-value="${size[metric]}"`);
 	}
-	expect(html).toContain('earlier full-engine implementation');
+	expect(html).toContain('current full-feature implementation');
 	expect(html).toContain('Bun 1.4.2');
+});
+
+test('API and migration docs cover supported features and their limits', async () => {
+	await build();
+	const api = await Bun.file(join(output, 'api.html')).text();
+	for (const value of [
+		'print(target?)',
+		'absolutePosition',
+		'relativePosition',
+		'marginTop',
+		'rowSpan',
+		'CSS named colors'
+	])
+		expect(api).toContain(value);
+	expect(api).toContain('repeated-header boundary');
+	expect(api).not.toContain('Row spans are unsupported');
+	const comparison = await Bun.file(join(output, 'comparison.html')).text();
+	expect(comparison).toContain('print(target?)');
+	expect(comparison).not.toContain('row spans are excluded');
 });
 
 test('documentation initializes the enhanced layout before paint and ships local search assets', async () => {
@@ -192,7 +213,7 @@ test('enhanced navigation intercepts only documentation in the same project dire
 	expect(canNavigateDocument('https://example.com/api.html', current, files)).toBe(false);
 	expect(canNavigateDocument('/api.html', current, files)).toBe(false);
 	expect(canNavigateDocument('charts/medianMs.svg', current, files)).toBe(false);
-	expect(canNavigateDocument('data/2026-10-08.json', current, files)).toBe(false);
+	expect(canNavigateDocument('data/2026-10-08-render-benchmarks.json', current, files)).toBe(false);
 	expect(canNavigateDocument('javascript:alert(1)', current, files)).toBe(false);
 });
 
@@ -216,13 +237,13 @@ test('numeric text is monospace without changing identifiers, links, metadata or
 		{ text: '; M4 A4 Uint8Array', numeric: false }
 	]);
 	const html =
-		'<head><title>Version 0.3.11</title></head><p id="value-72">72 points &amp; &#39;33 / 34&#39;</p><a href="2026-10-08.json">20 results</a><code>const n = 40;</code><svg viewBox="0 0 24 24"><text>25</text></svg><script>const n = 42;</script>';
+		'<head><title>Version 0.3.11</title></head><p id="value-72">72 points &amp; &#39;33 / 34&#39;</p><a href="2026-10-08-render-benchmarks.json">20 results</a><code>const n = 40;</code><svg viewBox="0 0 24 24"><text>25</text></svg><script>const n = 42;</script>';
 	const result = monospaceNumbers(html);
 	expect(result).toContain(
 		'<p id="value-72"><span class="number-value">72</span> points &amp; &#39;<span class="number-value">33</span> / <span class="number-value">34</span>&#39;</p>'
 	);
 	expect(result).toContain(
-		'<a href="2026-10-08.json"><span class="number-value">20</span> results</a>'
+		'<a href="2026-10-08-render-benchmarks.json"><span class="number-value">20</span> results</a>'
 	);
 	for (const untouched of [
 		'<title>Version 0.3.11</title>',

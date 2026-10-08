@@ -1,5 +1,5 @@
-import renderReport from '../benchmarks/2026-10-08.json';
-import bundleReport from '../benchmarks/2026-10-08-tree-shaking.json';
+import renderReport from './data/2026-10-08-render-benchmarks.json';
+import bundleReport from './data/2026-10-08-bundle-benchmarks.json';
 import { escape, heading, note, table } from './html';
 
 type Bar = { label: string; value: number; key: string; series: 'mink' | 'baseline' };
@@ -56,7 +56,7 @@ export const charts: Chart[] = [
 		id: `engine-${metric}`,
 		title: metric === 'bytes' ? 'Minified engines' : 'Gzip engines',
 		unit: 'bytes',
-		description: 'Original comparison · Bun 1.4.0 · fonts excluded',
+		description: 'Current full engine · Bun 1.4.2 · fonts excluded',
 		bars: renderReport.engines.map((row) => ({
 			label: row.name === 'minkpdf' ? 'MinkPDF' : row.name,
 			value: row[metric],
@@ -88,6 +88,11 @@ export const charts: Chart[] = [
 			.sort((a, b) => a.value - b.value)
 	}))
 ];
+
+const largeReportPages = renderReport.results
+	.filter((row) => row.scenario === '1,000-row report')
+	.map((row) => row.pages)
+	.join(' / ');
 
 const number = (value: number) => value.toLocaleString('en-US', { maximumFractionDigits: 3 });
 export function svgChart(chart: Chart): string {
@@ -122,9 +127,9 @@ function figure(chart: Chart): string {
 
 export function benchmarkContent(): string {
 	return `<div class="benchmark-meta"><span>Measured 08 Oct 2026</span><span>Apple M4 Pro</span><span>20 renders / scenario</span></div>
-${note('Read the results in context', 'These are local measurements, not a performance guarantee. The engines support different feature sets and do not produce pixel-identical documents. The 1,000-row report spans 33 / 34 pages (MinkPDF / pdfmake).')}
+${note('Read the results in context', `These are local measurements, not a performance guarantee. The engines support different feature sets and do not produce pixel-identical documents. The 1,000-row report spans ${largeReportPages} pages (MinkPDF / pdfmake).`)}
 ${heading('render-time', 'Render performance')}
-<p>Identical document definitions and Inter font files, from a short receipt to a 1,000-row report. Choose a metric to inspect the recorded results.</p>
+<p>Identical document definitions and Inter font files, including receipts, large tables, positioned invoice overlays, and ERP registration forms. Choose a metric to inspect the recorded results.</p>
 <div class="legend"><span><i class="dot mink"></i>MinkPDF</span><span><i class="dot baseline"></i>pdfmake 0.3.11</span><span class="legend-unit">Lower render time is better</span></div>
 <div class="metric-controls" role="group" aria-label="Render chart metric">${metrics.map((metric, index) => `<button type="button" data-metric="${metric.id}" aria-pressed="${index === 0}">${metric.title}</button>`).join('')}</div>
 ${charts
@@ -149,7 +154,7 @@ ${table(
 	'Recorded render measurements'
 )}
 ${heading('engine-size', 'Engine bundle comparison')}
-<p>The original report measures the <strong>earlier full-engine implementation</strong> against pdfmake 0.3.11. Both minified browser engine sizes exclude font assets. This is separate from the later optional-feature measurement below.</p>
+<p>The report measures the <strong>current full-feature implementation</strong> against pdfmake 0.3.11. Both minified browser engine sizes exclude font assets. The separate consumer measurement below includes only the features selected by each import.</p>
 <div class="chart-pair">${charts.slice(4, 6).map(figure).join('')}</div>
 ${table(
 	['Engine', 'Minified bytes', 'Gzip bytes', 'Local import (ms)'],
@@ -172,8 +177,8 @@ ${table(
 	])
 )}
 ${heading('methodology', 'How these were measured')}
-<ul><li>Render comparison: Bun ${renderReport.environment.bun}, ${renderReport.environment.cpu}, ${renderReport.environment.os}, ${renderReport.environment.architecture}; ${renderReport.environment.warmups} warmups and ${renderReport.environment.runs} measured renders per scenario.</li><li>Font I/O, module import, and definition cloning are outside render timings. First-render timings include font parsing. Warmed timings reuse parsed fonts.</li><li>Identical definitions and font files go to both engines. Poppler checks representative output text and page counts; this does not establish visual equivalence.</li><li>Import time measures local Bun module loading, not browser network delivery.</li><li>Optional-feature bundle results use Bun ${bundleReport.settings.bun}, browser target, and minification. Do not combine their sizes with the original render comparison.</li></ul>
-<div class="download-row"><a class="button secondary" href="data/2026-10-08.json" download>Render results · JSON ↓</a><a class="button secondary" href="data/2026-10-08-tree-shaking.json" download>Bundle results · JSON ↓</a></div>
+<ul><li>Render comparison: Bun ${renderReport.environment.bun}, ${renderReport.environment.cpu}, ${renderReport.environment.os}, ${renderReport.environment.architecture}; ${renderReport.environment.warmups} warmups and ${renderReport.environment.runs} measured renders per scenario.</li><li>Font I/O, module import, and definition cloning are outside render timings. First-render timings include font parsing. Warmed timings reuse parsed fonts.</li><li>Identical definitions and font files go to both engines. Poppler checks representative output text and page counts; this does not establish visual equivalence.</li><li>Import time measures local Bun module loading, not browser network delivery.</li><li>Optional-feature bundle results use Bun ${bundleReport.settings.bun}, browser target, and minification. Engine and consumer bundles use different entry points; compare each measurement within its own group.</li></ul>
+<div class="download-row"><a class="button secondary" href="data/2026-10-08-render-benchmarks.json" download>Render results · JSON ↓</a><a class="button secondary" href="data/2026-10-08-bundle-benchmarks.json" download>Bundle results · JSON ↓</a></div>
 ${heading('reproduce', 'Reproduce the results')}
 <p>Clone the repository and install Bun and Poppler. Registry access is required: the render benchmark installs pdfmake 0.3.11 in a temporary directory and removes it afterward.</p>
 <div class="code-block"><div class="code-label"><span>Terminal</span><button class="copy-button" type="button" aria-label="Copy benchmark commands">Copy</button></div><pre><code>bun run benchmark --runs=20 --output=/tmp/minkpdf-benchmark

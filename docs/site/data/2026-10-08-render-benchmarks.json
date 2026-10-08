@@ -1,0 +1,136 @@
+{
+  "environment": {
+    "bun": "1.4.2",
+    "platform": "darwin",
+    "architecture": "arm64",
+    "date": "2026-10-08",
+    "cpu": "Apple M4 Pro",
+    "os": "darwin 27.2.0",
+    "runs": 20,
+    "warmups": 3
+  },
+  "engines": [
+    {
+      "name": "minkpdf",
+      "bytes": 34765,
+      "gzipBytes": 14224,
+      "importMs": 4.259
+    },
+    {
+      "name": "pdfmake 0.3.11",
+      "bytes": 1053972,
+      "gzipBytes": 356393,
+      "importMs": 42.314
+    }
+  ],
+  "results": [
+    {
+      "scenario": "short document",
+      "engine": "minkpdf",
+      "firstMs": 12.45,
+      "medianMs": 0.242,
+      "p95Ms": 0.892,
+      "pdfBytes": 7488,
+      "pages": 1
+    },
+    {
+      "scenario": "short document",
+      "engine": "pdfmake 0.3.11",
+      "firstMs": 27.157,
+      "medianMs": 9.888,
+      "p95Ms": 11.991,
+      "pdfBytes": 8160,
+      "pages": 1
+    },
+    {
+      "scenario": "100-row report",
+      "engine": "minkpdf",
+      "firstMs": 15.88,
+      "medianMs": 2.764,
+      "p95Ms": 3.864,
+      "pdfBytes": 20222,
+      "pages": 4
+    },
+    {
+      "scenario": "100-row report",
+      "engine": "pdfmake 0.3.11",
+      "firstMs": 37.593,
+      "medianMs": 26.932,
+      "p95Ms": 28.214,
+      "pdfBytes": 27816,
+      "pages": 4
+    },
+    {
+      "scenario": "1,000-row report",
+      "engine": "minkpdf",
+      "firstMs": 29.266,
+      "medianMs": 23.364,
+      "p95Ms": 24.845,
+      "pdfBytes": 74487,
+      "pages": 33
+    },
+    {
+      "scenario": "1,000-row report",
+      "engine": "pdfmake 0.3.11",
+      "firstMs": 145.725,
+      "medianMs": 135.039,
+      "p95Ms": 137.671,
+      "pdfBytes": 145570,
+      "pages": 34
+    },
+    {
+      "scenario": "nested voucher",
+      "engine": "minkpdf",
+      "firstMs": 4.95,
+      "medianMs": 0.479,
+      "p95Ms": 0.613,
+      "pdfBytes": 12150,
+      "pages": 1
+    },
+    {
+      "scenario": "nested voucher",
+      "engine": "pdfmake 0.3.11",
+      "firstMs": 18.929,
+      "medianMs": 13.146,
+      "p95Ms": 15.609,
+      "pdfBytes": 13579,
+      "pages": 1
+    },
+    {
+      "scenario": "invoice overlay",
+      "engine": "minkpdf",
+      "firstMs": 3.712,
+      "medianMs": 0.279,
+      "p95Ms": 0.565,
+      "pdfBytes": 7850,
+      "pages": 1
+    },
+    {
+      "scenario": "invoice overlay",
+      "engine": "pdfmake 0.3.11",
+      "firstMs": 10.114,
+      "medianMs": 9.309,
+      "p95Ms": 11.267,
+      "pdfBytes": 8515,
+      "pages": 1
+    },
+    {
+      "scenario": "ERP registration form",
+      "engine": "minkpdf",
+      "firstMs": 4.285,
+      "medianMs": 0.606,
+      "p95Ms": 0.881,
+      "pdfBytes": 12951,
+      "pages": 1
+    },
+    {
+      "scenario": "ERP registration form",
+      "engine": "pdfmake 0.3.11",
+      "firstMs": 16.233,
+      "medianMs": 12.789,
+      "p95Ms": 15.287,
+      "pdfBytes": 14531,
+      "pages": 1
+    }
+  ]
+}

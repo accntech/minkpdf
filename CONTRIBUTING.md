@@ -71,7 +71,7 @@ section.
 - Update the README or relevant files in `docs/` when changing supported behavior, limitations, or
   public APIs.
 - Keep optional features separate from the core so consumers can remove unused modules. See
-  [Optional features and tree-shaking](./docs/tree-shaking.md).
+  [optional-feature guide](https://accntech.github.io/minkpdf/installation.html#optional-features).
 - Preserve licenses for font fixtures and any other third-party assets.
 
 During development, you can run a focused test file, for example:
@@ -84,7 +84,7 @@ Before submitting code changes, run `bun run build` and `bun test`. If the chang
 optional features, or bundle size, also run the bundle budget check used by the release workflow:
 
 ```sh
-bun benchmarks/tree-shaking.ts --compare-baseline=benchmarks/tree-shaking-baseline.json
+bun benchmarks/tree-shaking.ts --compare-baseline=benchmarks/bundle-baseline.json
 ```
 
 For performance changes, run `bun run benchmark` and include the relevant measurements and runtime
@@ -92,6 +92,47 @@ details in your pull request. See the README's [benchmark instructions](./README
 for prerequisites and options. Generated `dist/` output is ignored; commit source changes instead.
 Documentation-only changes need a check of their links and instructions; engine tests are unnecessary
 unless the documented behavior changes too.
+
+## Source analysis
+
+With Fallow 3.30.0 available, run the source checks from the repository root:
+
+```sh
+fallow src --no-cache --fail-on-issues
+fallow health src --coverage-gaps --no-cache
+fallow dupes src --mode semantic --near --no-cache
+```
+
+`fallow-plugin-bun-test.json` declares `tests/**/*.unit.test.ts` as test roots. Fallow still builds
+its full project graph when findings are scoped to `src`, and recognizes public entry points from
+`package.json`. Keep the default complexity thresholds: cyclomatic 20, cognitive 15, and function
+size 60 lines. Do not increase thresholds or reset bundle budgets to accommodate a refactor.
+
+Fallow estimates test coverage from dependency paths; its CRAP scores are not measured branch
+coverage. For executed line and function coverage, use `bun test --coverage`. Static coverage gaps
+identify missing import paths, while semantic duplicates need review: the CSS color lookup, font
+metric tables, and drawing types contain intentionally similar data and declarations.
+
+The 2026-10-08 source refactor moved Fallow's score from 79.7 (B) to 90 (A), reduced maximum
+cyclomatic complexity from 45 to 12, and removed all default source findings and static coverage
+gaps. The remaining score penalty comes from Git churn in the rendering module. Validation included
+114 tests, byte-identical PDFs for six benchmark definitions and seven PNG fixtures, and the existing
+bundle budgets. Complexity is distributed among focused helpers; a lower per-function score alone
+does not prove that total branching or runtime cost has decreased.
+
+## Documentation site
+
+Preview the documentation with `bun run docs:dev`, then open `http://127.0.0.1:4173`.
+Set `PORT=4174` to use another port. After edits, run `bun run docs:build` and refresh.
+Run `bun run docs:test` to check generated pages, links, and chart data. Output goes to
+the ignored `.site/` directory.
+
+Edit page content in `docs/site/content.ts`, charts in `docs/site/charts.ts`, and current
+benchmark reports in `docs/site/data/`. The build exports those reports as downloadable JSON.
+
+For GitHub Pages, set **Settings → Pages → Source** to **GitHub Actions**. The
+**Documentation site** workflow deploys changes pushed to `main`; pull requests only run checks.
+The published site is <https://accntech.github.io/minkpdf/>.
 
 ## Commit messages and signatures
 
@@ -133,8 +174,7 @@ Open a pull request against `main` with:
 - Sample output or screenshots for visible PDF changes, and benchmark results for performance claims.
 
 Small pull requests are easier to review. Respond to review feedback and keep the description current
-if the scope changes. Publishing is handled by maintainers through the
-[release workflow](./docs/releases.md).
+if the scope changes. Publishing is handled by maintainers.
 
 Contributions to the engine are provided under the repository's [MIT License](./LICENSE). Font
 fixtures retain their separate SIL Open Font licenses.

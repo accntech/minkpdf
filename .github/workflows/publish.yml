@@ -68,7 +68,7 @@ jobs:
         run: bun test
 
       - name: Verify bundle size budgets
-        run: bun benchmarks/tree-shaking.ts --compare-baseline=benchmarks/tree-shaking-baseline.json
+        run: bun benchmarks/tree-shaking.ts --compare-baseline=benchmarks/bundle-baseline.json
 
       - name: Stage package for approval
         env:

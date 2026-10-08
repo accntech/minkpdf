@@ -15,28 +15,28 @@
   },
   "sizes": {
     "namedRoot": {
-      "raw": 25560,
-      "gzip": 10544
+      "raw": 31596,
+      "gzip": 13234
     },
     "defaultRoot": {
-      "raw": 25576,
-      "gzip": 10555
+      "raw": 31612,
+      "gzip": 13244
     },
     "core": {
-      "raw": 13391,
-      "gzip": 5749
+      "raw": 18757,
+      "gzip": 8037
     },
     "tables": {
-      "raw": 15913,
-      "gzip": 6705
+      "raw": 22911,
+      "gzip": 9678
     },
     "images": {
-      "raw": 16973,
-      "gzip": 7155
+      "raw": 22339,
+      "gzip": 9466
     },
     "truetype": {
-      "raw": 19444,
-      "gzip": 8213
+      "raw": 23849,
+      "gzip": 10216
     }
   }
 }
